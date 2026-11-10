@@ -456,7 +456,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
         <h1>Kernel<span class="shift">Shift</span></h1>
         <p class="sub">Benchmarking Kernel Optimization Across Evolving Hardware</p>
         <p class="authors"><span class="names">Shuaiwei Huang<sup>1*</sup>, Weihua Du<sup>1*</sup>, Allen Wu<sup>1*</sup>, Ivan Fox<sup>2</sup>, Manupa Karunaratne<sup>2</sup>, Yiming Yang<sup>1</sup>, Sean Welleck<sup>1</sup></span><span class="aff"><sup>1</sup>Carnegie Mellon University · <sup>2</sup>Arm Ltd. · <sup>*</sup>Equal contribution</span></p>
-        <p class="lede">Each new generation of Arm processors adds instruction-set extensions, shifting over time, and the fastest code has to be rewritten to use them. <span class="sc">KernelShift</span> gives agents 103 real optimization tasks from four open-source libraries and runs their code on the real processors. We provide a <b>task collection pipeline</b> and an <b>evaluation framework</b> for kernel optimization on evolving hardware, and show that agents beat library code on established extensions but still struggle with newer ones.</p>
+        <p class="lede">Each new generation of Arm processors adds instruction-set extensions, shifting over time, and the fastest code has to be rewritten to use them. <span class="sc">KernelShift</span> gives agents 101 real optimization tasks from four open-source libraries and runs their code on the real processors. We provide a <b>task collection pipeline</b> and an <b>evaluation framework</b> for kernel optimization on evolving hardware, and show that agents beat library code on established extensions but still struggle with newer ones.</p>
         <nav class="pills" aria-label="Sections">
           <a class="pill" href="#generations">Motivation</a>
           <a class="pill" href="#pipeline">Task collection pipeline</a>
@@ -478,7 +478,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
       sum += A[m*K+k] * B[k*N+n];
     C[m*N+n] = sum;
   }</pre>
-            <p class="ts-foot">A matrix multiply from KleidiAI, one of 103 tasks</p>
+            <p class="ts-foot">A matrix multiply from KleidiAI, one of 101 tasks</p>
           </div>
           <div class="ts">
             <p class="ts-no">2 · Agent</p>
@@ -599,7 +599,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
             <div class="box" data-stage="expert"><b>Expert code</b><span>the library's own kernel</span></div>
           </div>
           <div class="down" aria-hidden="true"></div>
-          <div class="box final" data-stage="final"><b>KernelShift</b><span>103 kernels · ~1.6K workloads · extensible</span></div>
+          <div class="box final" data-stage="final"><b>KernelShift</b><span>101 kernels · ~1.6K workloads · extensible</span></div>
         </div>
         <aside class="ext replay" aria-label="Replay of a real task-construction session">
           <div class="rp-top">
@@ -676,7 +676,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
           <div class="txt">
             <p class="label">Established extension (SVE)</p>
             <h3>Agents beat the code popular libraries ship</h3>
-            <p>The best tested agent (GLM-5.3 with nanobot) is 2.7× faster than ncnn's own code, and the best tested agents are about 1.9× faster on llama.cpp and Arm SIMD Loops. Arm's hand-tuned KleidiAI code is still ahead. A compiler on its own reaches at most half the library's speed.</p>
+            <p>The best tested agent (GLM-5.3 with nanobot) is 2.7× faster than ncnn's own code, and the best tested agents are about 1.95× faster on llama.cpp and 1.56× on Arm SIMD Loops. Arm's hand-tuned KleidiAI code is still ahead. A compiler on its own reaches at most half the library's speed.</p>
             <button class="more-btn" id="full-btn" type="button" aria-expanded="false" aria-controls="full-results">Full results <span class="chev" aria-hidden="true">▾</span></button>
           </div>
           <div class="chart" role="img" aria-label="Best tested agent score and compiler-only score per library; 1.0 is the library's own code">
@@ -699,14 +699,14 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
                       <th scope="col">Model</th>
                       <th scope="col" data-k="0" aria-sort="descending"><button type="button">ncnn <span class="h">23 tasks</span></button></th>
                       <th scope="col" data-k="1"><button type="button">llama.cpp <span class="h">26</span></button></th>
-                      <th scope="col" data-k="2"><button type="button">SIMD Loops <span class="h">26</span></button></th>
+                      <th scope="col" data-k="2"><button type="button">SIMD Loops <span class="h">24</span></button></th>
                       <th scope="col" data-k="3"><button type="button">KleidiAI <span class="h">3</span></button></th>
                     </tr>
                   </thead>
                   <tbody id="lb-body"></tbody>
                 </table>
               </div>
-              <p class="note">From the submitted paper. Underlined: best in column. Grey rows: no agent loop.</p>
+              <p class="note">From the paper's Table 2 (SIMD Loops without the two in-place sorts). Underlined: best in column. Grey rows: no agent loop.</p>
             </div>
           </div>
         </article>
@@ -806,7 +806,7 @@ python3 test_scripts/bench_fleet.py \
     }
   }
   var lib = [['ncnn', 2.743, 0.229, 'GLM-5.3 · nanobot'], ['llama.cpp', 1.954, 0.126, 'GLM-5.3 · nanobot'],
-             ['SIMD Loops', 1.891, 0.492, 'GPT-5.6-sol · nanobot'], ['KleidiAI', 0.887, 0.098, 'Opus 4.8 · Claude Code']];
+             ['SIMD Loops', 1.5551, 0.468, 'Opus 4.8 · Claude Code'], ['KleidiAI', 0.887, 0.098, 'Opus 4.8 · Claude Code']];
   var MAX1 = 3;
   document.getElementById('chart-sve').innerHTML = lib.map(function (r) {
     return '<div class="row"><span class="name">' + r[0] + '<small>' + r[3] + '</small></span><div class="track">' +
@@ -857,26 +857,26 @@ python3 test_scripts/bench_fleet.py \
   ticks(document.getElementById('ticks-lm'), MAX2, 1, '×');
 
   var ROWS = [
-    ['Claude Code', 'Claude Opus 4.8', [2.574, 96], [1.779, 73], [1.807, 96], [0.887, 67]],
-    ['Claude Code', 'Claude Sonnet 4.6', [1.934, 83], [1.243, 46], [1.611, 100], [0.750, 67]],
-    ['Codex', 'GPT-5.6-sol', [1.815, 78], [1.297, 62], [1.760, 96], [0.646, 33]],
-    ['Codex', 'GPT-5.6-luna', [0.674, 35], [0.627, 27], [1.255, 77], [0.312, 0]],
-    ['nanobot', 'Claude Opus 4.8', [2.597, 91], [1.708, 73], [1.685, 96], [0.851, 33]],
-    ['nanobot', 'Claude Sonnet 4.6', [2.046, 87], [1.449, 62], [1.612, 92], [0.464, 0]],
-    ['nanobot', 'GPT-5.6-sol', [2.156, 87], [1.334, 58], [1.891, 100], [0.638, 0]],
-    ['nanobot', 'GPT-5.6-luna', [1.110, 57], [0.878, 31], [1.305, 77], [0.372, 0]],
-    ['nanobot', 'DeepSeek-V4-Pro', [1.091, 57], [0.850, 46], [1.405, 85], [0.710, 33]],
-    ['nanobot', 'GLM-5.3', [2.743, 91], [1.954, 85], [1.586, 96], [0.778, 33]],
-    ['Simple tool loop', 'Claude Opus 4.8', [2.308, 83], [1.828, 73], [1.590, 88], [0.797, 67]],
-    ['Simple tool loop', 'Claude Sonnet 4.6', [2.043, 87], [1.915, 81], [1.734, 100], [0.660, 33]],
-    ['Simple tool loop', 'GPT-5.6-sol', [1.999, 91], [1.671, 81], [1.693, 96], [0.678, 67]],
-    ['Simple tool loop', 'GPT-5.6-luna', [0.955, 48], [0.854, 31], [1.407, 77], [0.505, 33]]
+    ['Claude Code', 'Claude Opus 4.8', [2.574, 96], [1.779, 73], [1.5551, 96], [0.887, 67]],
+    ['Claude Code', 'Claude Sonnet 4.6', [1.934, 83], [1.243, 46], [1.5155, 100], [0.750, 67]],
+    ['Codex', 'GPT-5.6-sol', [1.815, 78], [1.297, 62], [1.4866, 96], [0.646, 33]],
+    ['Codex', 'GPT-5.6-luna', [0.674, 35], [0.627, 27], [1.1268, 79], [0.312, 0]],
+    ['nanobot', 'Claude Opus 4.8', [2.597, 91], [1.708, 73], [1.5214, 96], [0.851, 33]],
+    ['nanobot', 'Claude Sonnet 4.6', [2.046, 87], [1.449, 62], [1.5033, 96], [0.464, 0]],
+    ['nanobot', 'GPT-5.6-sol', [2.156, 87], [1.334, 58], [1.5433, 100], [0.638, 0]],
+    ['nanobot', 'GPT-5.6-luna', [1.110, 57], [0.878, 31], [1.1824, 79], [0.372, 0]],
+    ['nanobot', 'DeepSeek-V4-Pro', [1.091, 57], [0.850, 46], [1.4584, 88], [0.710, 33]],
+    ['nanobot', 'GLM-5.3', [2.743, 91], [1.954, 85], [1.5447, 96], [0.778, 33]],
+    ['Simple tool loop', 'Claude Opus 4.8', [2.308, 83], [1.828, 73], [1.4801, 92], [0.797, 67]],
+    ['Simple tool loop', 'Claude Sonnet 4.6', [2.043, 87], [1.915, 81], [1.5209, 100], [0.660, 33]],
+    ['Simple tool loop', 'GPT-5.6-sol', [1.999, 91], [1.671, 81], [1.5126, 96], [0.678, 67]],
+    ['Simple tool loop', 'GPT-5.6-luna', [0.955, 48], [0.854, 31], [1.2448, 75], [0.505, 33]]
   ];
   var TIERS = [
-    ['One answer, no tools', 'Claude Opus 4.8', [0.577, 35], [0.324, 8], [0.849, 42], [0.517, 0]],
-    ['Compiler only', 'starting code, basic', [0.190, 0], [0.090, 8], [0.273, 4], [0.054, 0]],
-    ['Compiler only', 'starting code, vectorized', [0.191, 0], [0.117, 12], [0.424, 19], [0.083, 0]],
-    ['Compiler only', 'starting code, best flags', [0.229, 9], [0.126, 15], [0.492, 27], [0.098, 0]]
+    ['One answer, no tools', 'Claude Opus 4.8', [0.577, 35], [0.324, 8], [0.852, 42], [0.517, 0]],
+    ['Compiler only', 'starting code, basic', [0.190, 0], [0.090, 8], [0.248, 0], [0.054, 0]],
+    ['Compiler only', 'starting code, vectorized', [0.191, 0], [0.117, 12], [0.398, 17], [0.083, 0]],
+    ['Compiler only', 'starting code, best flags', [0.229, 9], [0.126, 15], [0.468, 25], [0.098, 0]]
   ];
   var best = [0, 1, 2, 3].map(function (k) { return Math.max.apply(null, ROWS.map(function (r) { return r[2 + k][0]; })); });
   var sortKey = 0, desc = true;

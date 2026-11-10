@@ -196,11 +196,11 @@ td code { white-space: nowrap; }
     <article data-page="introduction">
       <p class="crumb">Getting started</p>
       <h1>Introduction</h1>
-      <p class="lead">Arm keeps adding instruction-set extensions, and fast kernels have to be rewritten for each one. KernelShift measures whether coding agents can do that rewrite. It has two parts: <b>kgen</b>, an automated pipeline that collects tasks from open-source libraries, and the <b>current evaluation set</b>: 103 kernels from four libraries, checked and timed on real Neon, SVE, SVE2 and SME2 processors.</p>
+      <p class="lead">Arm keeps adding instruction-set extensions, and fast kernels have to be rewritten for each one. KernelShift measures whether coding agents can do that rewrite. It has two parts: <b>kgen</b>, an automated pipeline that collects tasks from open-source libraries, and the <b>current evaluation set</b>: 101 kernels from four libraries, checked and timed on real Neon, SVE, SVE2 and SME2 processors.</p>
       <p>Each task is a kernel from a production library with a reference implementation, workloads taken from real models, and an expert implementation to beat. Through MCP tools, the agent compiles its kernel, tests and times it, and reads the generated assembly, all on the target processor. A kernel scores only if it is correct on every workload, and its score is the speedup over the expert implementation.</p>
       <div class="cards">
         <a class="card" href="#quickstart"><strong>Quickstart</strong><span>Check and time one kernel on your own computer.</span></a>
-        <a class="card" href="#datasets"><strong>Datasets</strong><span>The 103 kernels of the evaluation set and where they come from.</span></a>
+        <a class="card" href="#datasets"><strong>Datasets</strong><span>The 101 kernels of the evaluation set and where they come from.</span></a>
         <a class="card" href="#kgen"><strong>Add a kernel with kgen</strong><span>Turn a kernel from a library into a new task.</span></a>
         <a class="card" href="#run-an-agent"><strong>Run an agent</strong><span>Claude Code, Codex, nanobot and others on EC2.</span></a>
       </div>
@@ -352,20 +352,20 @@ python -m bench.cli list-solutions</code></pre>
     <article data-page="datasets" hidden>
       <p class="crumb">Concepts</p>
       <h1>Datasets</h1>
-      <p class="lead">The Hugging Face dataset <a href="https://huggingface.co/datasets/arm-bench/arm-bench-trace"><code>arm-bench/arm-bench-trace</code></a> holds 142 definitions. 103 of them are the current evaluation set.</p>
+      <p class="lead">The Hugging Face dataset <a href="https://huggingface.co/datasets/arm-bench/arm-bench-trace"><code>arm-bench/arm-bench-trace</code></a> holds 142 definitions. 101 of them are the current evaluation set.</p>
       <div class="tbl"><table>
         <thead><tr><th>Library</th><th><code style="background:none;padding:0">--dataset</code></th><th>Definitions</th><th>Evaluated</th><th>Expert author</th></tr></thead>
         <tbody>
           <tr><td>ncnn</td><td><code>ncnn</code></td><td>23</td><td>23</td><td><code>baseline-ncnn-arm</code></td></tr>
           <tr><td>llama.cpp</td><td><code>llama.cpp</code></td><td>26, plus 18 end-to-end</td><td>26</td><td><code>baseline-llamacpp-arm</code></td></tr>
-          <tr><td>Arm SIMD Loops</td><td><code>simd-loop</code></td><td>47</td><td>26</td><td><code>baseline-sve</code>, <code>baseline-sve2</code>, <code>baseline-sme2</code></td></tr>
+          <tr><td>Arm SIMD Loops</td><td><code>simd-loop</code></td><td>47</td><td>24</td><td><code>baseline-sve</code>, <code>baseline-sve2</code>, <code>baseline-sme2</code></td></tr>
           <tr><td>KleidiAI</td><td><code>kleidiai</code></td><td>28</td><td>28</td><td><code>baseline-kleidiai-arm</code></td></tr>
         </tbody>
       </table></div>
       <p>The 18 end-to-end definitions are the matrix multiplies of two models, tagged <code>e2e:&lt;model&gt;</code>; see <a href="#e2e">End to end in llama.cpp</a>.</p>
       <h2 id="ds-sets">Evaluation sets</h2>
       <ul>
-        <li><code>expected_sets_sve.json</code>: the 103 evaluated definitions.</li>
+        <li><code>expected_sets_sve.json</code>: the 101 evaluated definitions.</li>
         <li><code>subset_sve.json</code> and <code>subset_sme.json</code>: a 32-definition sample for the SVE and SME2 targets. They differ only in the KleidiAI matrix multiply.</li>
         <li><code>TASKS.md</code>: every definition with its expert solution on each target, and whether it runs there.</li>
       </ul>
