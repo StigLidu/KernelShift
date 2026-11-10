@@ -86,7 +86,7 @@ section .head > .label { justify-self: start; font-size: var(--fs-base); line-he
 
 /* hero figure: one task from start to finish (task, agent, score) */
 .task { margin: 32px 0 0; display: grid; gap: 10px; }
-.task-row { display: grid; grid-template-columns: 1.15fr 1fr 1fr; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+.task-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
 .ts { position: relative; padding: 18px 22px; display: flex; flex-direction: column; gap: 11px; min-width: 0; }
 .ts + .ts { border-left: 1px solid var(--rule); }
 .ts + .ts::before { content: "→"; position: absolute; left: -13px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); font-size: var(--fs-sm); line-height: 1; }
@@ -95,7 +95,7 @@ section .head > .label { justify-self: start; font-size: var(--fs-base); line-he
 .ts-foot { margin-top: auto; font-size: var(--fs-sm); color: var(--muted); }
 .code { margin: 0; padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; font: var(--fs-sm)/1.6 var(--font-mono); overflow-x: auto; }
 /* three panels side by side but narrow: one step smaller so the longest line still fits */
-@media (min-width: 961px) and (max-width: 1040px) { .code { font-size: var(--fs-xs); } }
+@media (min-width: 1041px) and (max-width: 1100px) { .code { font-size: var(--fs-xs); } }
 .code .c { color: var(--muted); }
 .isa { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 /* the agent loop: each turn the agent calls any one of the tools and reads the result; no fixed order */
@@ -383,6 +383,10 @@ footer { border-top: 1px solid var(--rule); padding-block: 28px 40px; font-size:
 footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
 
 @media (max-width: 1040px) {
+  /* hero panels stack once three equal columns are too narrow for the code */
+  .task-row { grid-template-columns: minmax(0, 1fr); }
+  .ts + .ts { border-left: 0; border-top: 1px solid var(--rule); }
+  .ts + .ts::before { content: "↓"; left: 50%; top: -13px; transform: translateX(-50%); }
   .two { grid-template-columns: minmax(0, 1fr); }
   .arch { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 0; padding: 16px; }
   .arch > * { grid-column: 1; grid-row: auto; }
@@ -396,9 +400,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   .arch-back span { position: static; transform: none; }
 }
 @media (max-width: 960px) {
-  .pipe, .gen-wrap, .task-row { grid-template-columns: minmax(0, 1fr); }
-  .ts + .ts { border-left: 0; border-top: 1px solid var(--rule); }
-  .ts + .ts::before { content: "↓"; left: 50%; top: -13px; transform: translateX(-50%); }
+  .pipe, .gen-wrap { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 860px) {
   .fcard { grid-template-columns: minmax(0, 1fr); }
