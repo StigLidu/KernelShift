@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KernelShift</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪜</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: left-aligned 1120px column, plain-language sections for agent researchers; one colour per Arm
+   instruction-set extension (Neon grey, SVE blue, SVE2 green, SME2 orange, as in the paper); orange marks the hard step. */
+:root {
+  --bg: #F7F6F2;
+  --surface: #FFFFFF;
+  --ink: #1F1E1A;
+  --muted: #5D5C56;
+  --rule: #DDDBD4;
+  --soft: #EFEDE7;
+  --neon: #7B7A73;
+  --sve: #0068A3;
+  --sve2: #007A57;
+  --sme2: #C25200;
+  --sme2-soft: #FAE5D6;
+  --sve-soft: #E0EDF6;
+  --sve2-soft: #DCEFE8;
+  --neon-soft: #EBEAE5;
+  --font-display: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --fs-xs: 12px; --fs-sm: 13px; --fs-md: 15px; --fs-base: 16px; --fs-lg: 18px; --fs-h3: 20px; --fs-stat: 28px;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12110F; --surface: #1A1917; --ink: #EEEDE8; --muted: #B0AEA6; --rule: #34322E; --soft: #23221F;
+    --neon: #A9A79F; --sve: #56B4E9; --sve2: #3CC79E; --sme2: #F28A4A;
+    --sme2-soft: #3A2312; --sve-soft: #13293A; --sve2-soft: #10302A; --neon-soft: #262522;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12110F; --surface: #1A1917; --ink: #EEEDE8; --muted: #B0AEA6; --rule: #34322E; --soft: #23221F;
+  --neon: #A9A79F; --sve: #56B4E9; --sve2: #3CC79E; --sme2: #F28A4A;
+  --sme2-soft: #3A2312; --sve-soft: #13293A; --sve2-soft: #10302A; --neon-soft: #262522;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: var(--fs-base); line-height: 1.55; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+a { color: inherit; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.label { font-family: var(--font-body); font-size: var(--fs-sm); font-weight: 600; color: var(--sve); }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(26px, 3.4vw, 36px); font-weight: 650; letter-spacing: -.02em; line-height: 1.15; }
+h3 { font-size: var(--fs-h3); font-weight: 650; letter-spacing: -.01em; line-height: 1.3; }
+p { margin: 0; }
+.lede { max-width: 62ch; color: var(--muted); font-size: var(--fs-lg); }
+section { padding-block: 72px; border-top: 1px solid var(--rule); }
+section .head { display: grid; gap: 12px; margin-bottom: 36px; }
+/* section title tag: flat top, bottom and left edges, a small point on the right */
+section .head > .label { justify-self: start; font-size: var(--fs-base); line-height: 1.3; padding: 6px 26px 6px 12px; background: var(--sve-soft); clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%); }
+.note { font-size: var(--fs-sm); color: var(--muted); margin-top: 14px; }
+
+/* top bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
+.bar .wrap { display: flex; align-items: center; gap: 24px; height: 56px; }
+.wordmark { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-lg); text-decoration: none; letter-spacing: -.02em; }
+.wordmark span { color: var(--sme2); }
+.bar nav { display: flex; align-items: center; gap: 8px; margin-left: auto; overflow-x: auto; }
+.bar nav a, .bar nav .off { text-decoration: none; font-size: var(--fs-md); font-weight: 600; color: var(--ink); white-space: nowrap; padding: 6px 14px; border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); border-radius: 999px; background: var(--surface); }
+.bar nav a:hover, .bar nav a:focus-visible { border-color: var(--ink); }
+.bar nav a.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.bar nav .off { color: var(--muted); font-weight: 500; opacity: .6; cursor: default; }
+
+/* hero */
+.hero { padding-block: 40px 56px; }
+.hero-text { max-width: 960px; margin: 0 auto; text-align: center; }
+.hero-text .pills { justify-content: center; gap: 8px; }
+.hero .pill { padding: 7px 13px; font-size: var(--fs-sm); }
+.sc { font-variant: small-caps; font-weight: 600; color: var(--ink); }   /* the name in small capitals, as in the paper */
+.hero h1 { font-size: clamp(44px, 6.5vw, 76px); font-weight: 700; letter-spacing: -.035em; line-height: .95; }
+.hero h1 .shift { color: var(--sme2); }
+.hero .sub { font-family: var(--font-display); font-size: clamp(20px, 2.5vw, 28px); font-weight: 600; letter-spacing: -.01em; margin-top: 18px; line-height: 1.25; }
+.hero .lede { margin: 18px auto 0; max-width: 68ch; }
+.hero .lede b { font-weight: 600; color: var(--ink); }
+
+/* hero figure: one task from start to finish (task, agent, score) */
+.task { margin: 32px 0 0; display: grid; gap: 10px; }
+.task-row { display: grid; grid-template-columns: 1.15fr 1fr 1fr; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+.ts { position: relative; padding: 18px 22px; display: flex; flex-direction: column; gap: 11px; min-width: 0; }
+.ts + .ts { border-left: 1px solid var(--rule); }
+.ts + .ts::before { content: "→"; position: absolute; left: -13px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); font-size: var(--fs-sm); line-height: 1; }
+.ts-no { font-family: var(--font-body); font-size: var(--fs-sm); font-weight: 600; color: var(--sve); }
+.ts h3 { font-size: var(--fs-base); margin-top: -6px; }
+.ts-foot { margin-top: auto; font-size: var(--fs-sm); color: var(--muted); }
+.code { margin: 0; padding: 12px 14px; background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; font: var(--fs-sm)/1.6 var(--font-mono); overflow-x: auto; }
+/* three panels side by side but narrow: one step smaller so the longest line still fits */
+@media (min-width: 961px) and (max-width: 1040px) { .code { font-size: var(--fs-xs); } }
+.code .c { color: var(--muted); }
+.isa { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+/* the agent loop: each turn the agent calls any one of the tools and reads the result; no fixed order */
+.loop { display: flex; justify-content: center; margin-block: auto; }
+.loop + .ts-foot { margin-top: 0; }
+/* the bottom padding holds the "Toolkit" caption, so the agent and arrows stay centred on the box */
+.loop-row { display: flex; align-items: center; padding-bottom: 20px; }
+.agent { font-size: var(--fs-sm); font-weight: 600; line-height: 20px; padding: 6px 14px; border-radius: 999px; background: var(--ink); color: var(--bg); }
+.xchg { position: relative; display: grid; gap: 7px; width: 40px; margin: 0 8px; }
+.xchg i { position: relative; height: 1.5px; background: var(--muted); }
+.xchg i::after { content: ""; position: absolute; top: -3.25px; border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+.xchg .fw::after { right: -1px; border-left: 6px solid var(--muted); }
+.xchg .bk::after { left: -1px; border-right: 6px solid var(--muted); }
+.tools { display: flex; flex-direction: column; align-items: stretch; text-align: center; gap: 6px; padding: 8px; border: 1px dashed color-mix(in srgb, var(--ink) 35%, transparent); border-radius: 12px; }
+.kit { position: relative; }
+.xchg small, .kit small { position: absolute; left: 50%; transform: translateX(-50%); font-size: var(--fs-sm); line-height: 16px; color: var(--muted); white-space: nowrap; }
+.xchg small { top: calc(100% + 6px); }
+.kit small { top: calc(100% + 4px); }
+.isa span { font: 500 var(--fs-sm) var(--font-body); padding: 4px 9px; border-radius: 3px; border: 1px solid var(--rule); color: var(--muted); }
+.isa span.on { color: var(--ink); background: var(--sme2-soft); border-color: var(--sme2); }
+.tools span { font-size: var(--fs-sm); line-height: 20px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); }
+.tchart-wrap { position: relative; width: 100%; max-width: 360px; margin-inline: auto; }
+.tchart { width: 100%; height: auto; display: block; overflow: visible; }
+/* each label's top is the SVG baseline it replaces; the shift puts the text just above it */
+.tl { position: absolute; transform: translateY(-100%); font-size: var(--fs-sm); line-height: 1; color: var(--muted); white-space: nowrap; }
+.t-axis { stroke: var(--rule); stroke-width: 1; }
+.t-ref { stroke: var(--ink); stroke-width: 1.2; stroke-dasharray: 4 4; opacity: .55; }
+.t-line { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linejoin: round; }
+.t-head { fill: var(--ink); }
+.authors { margin-top: 22px; font-size: var(--fs-sm); color: var(--muted); }
+.authors .names { display: block; font-size: var(--fs-md); color: var(--ink); }
+.authors .aff { display: block; margin-top: 4px; }
+.authors sup { font-size: .7em; line-height: 0; }
+.pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--rule); background: var(--surface); text-decoration: none; font-size: var(--fs-sm); font-weight: 500; }
+.pill:hover, .pill:focus-visible { border-color: var(--ink); }
+.pill.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.pill.off { color: var(--muted); cursor: default; }
+.pill.off:hover { border-color: var(--rule); }
+.pill small { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+
+/* hero figure: rows of numbers, then a grid */
+.lanes { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 22px; display: grid; gap: 18px; margin: 0; }
+.lane { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; align-items: center; }
+.lane .tag { font-size: var(--fs-sm); line-height: 1.3; }
+.lane .tag b { display: block; font-size: var(--fs-md); font-weight: 600; }
+.lane .tag span { color: var(--muted); }
+/* fixed-size square cells: the figure keeps its shape at every width */
+.lanes { --u: 16px; --g: 4px; }
+.cells { display: grid; grid-auto-flow: column; grid-auto-columns: var(--u); gap: var(--g); }
+.cell { width: var(--u); aspect-ratio: 1; border-radius: 3px; }
+.neon .cell { background: var(--neon-soft); border: 1px solid var(--neon); }
+.sve .cell { background: var(--sve-soft); border: 1px solid var(--sve); }
+.sve2 .cell { background: var(--sve2-soft); border: 1px solid var(--sve2); }
+/* an 8x8 grid of the same cells as the rows above, so it is exactly as wide as the 8-cell row */
+.tile { display: grid; grid-template-columns: repeat(8, var(--u)); gap: var(--g); }
+.tile i { width: var(--u); aspect-ratio: 1; background: var(--sme2-soft); border: 1px solid var(--sme2); border-radius: 3px; }
+.lanes .fig-title { font-family: var(--font-display); font-size: var(--fs-base); font-weight: 600; letter-spacing: -.01em; padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+.lanes figcaption { font-size: var(--fs-sm); color: var(--muted); border-top: 1px solid var(--rule); padding-top: 14px; }
+
+
+/* extensions: 2x2 cards on the left, the data-shape figure on the right, same height */
+.gen-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 28px; align-items: stretch; }
+.gens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+.gen { padding: 22px; display: grid; gap: 10px; align-content: start; }
+.gen:nth-child(even) { border-left: 1px solid var(--rule); }
+.gen:nth-child(n+3) { border-top: 1px solid var(--rule); }
+.gen .name { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-size: var(--fs-h3); font-weight: 650; letter-spacing: -.01em; }
+.gen .name::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+.gen .chip-hw { font-size: var(--fs-sm); color: var(--muted); }
+.gen p { font-size: var(--fs-md); }
+.gen .out { margin-top: 4px; font-size: var(--fs-sm); padding-top: 12px; border-top: 1px solid var(--rule); color: var(--muted); }
+.gen .out b { color: var(--ink); font-weight: 600; }
+.gen.hard .out b { color: var(--sme2); }
+.takeaway { margin-top: 20px; font-size: var(--fs-lg); max-width: 70ch; }
+
+/* task pipeline */
+.tool { font-family: var(--font-mono); font-weight: 600; color: var(--sve); letter-spacing: -.02em; }
+.lede .tool { font-weight: 500; }
+/* both columns share one height; the arrows stretch to absorb the difference */
+.pipe { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 28px; align-items: stretch; }
+.flow { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 24px; min-width: 0; }
+.flow .src, .flow .outs { display: grid; gap: 10px; }
+.flow .src { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.flow .outs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.flow > .down { align-self: center; height: auto; min-height: 22px; flex: 1 0 22px; }
+.arrows4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; flex: 1 0 22px; }
+.arrows4 .down { justify-self: center; height: 100%; min-height: 22px; }
+.build .st { font-size: var(--fs-sm); color: var(--muted); }
+.flow .box b { font-size: var(--fs-base); letter-spacing: -.01em; }
+.flow .build .t { font-size: var(--fs-base); letter-spacing: -.01em; }
+.skillrow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.skillrow .skill { font-family: var(--font-mono); font-size: var(--fs-xs); line-height: 1.35; padding: 6px 4px; display: grid; place-items: center; overflow-wrap: anywhere; }
+.flow .on-a { border-color: var(--sve); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sve) 40%, transparent); }
+.flow .on-h { border-color: var(--sme2); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sme2) 40%, transparent); }
+@media (prefers-reduced-motion: no-preference) { .flow [data-stage] { transition: border-color .25s, box-shadow .25s; } }
+.flow .box, .flow .build { text-align: center; }
+.box { border: 1px solid var(--rule); border-radius: 5px; padding: 12px 14px; background: var(--bg); display: grid; gap: 3px; align-content: start; min-width: 0; }
+.box b { font-weight: 600; font-size: var(--fs-md); }
+.box span { font-size: var(--fs-sm); color: var(--muted); line-height: 1.4; }
+.box.final { background: var(--ink); border-color: var(--ink); }
+.box.final b, .box.final span { color: var(--bg); }
+.box.final span { opacity: .8; }
+.down { justify-self: center; position: relative; width: 0; height: 22px; border-left: 1.5px solid var(--muted); }
+.down::after { content: ""; position: absolute; left: -5.75px; bottom: -1px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--muted); }
+.build { border: 1.5px solid var(--sve); background: var(--sve-soft); border-radius: 5px; padding: 14px 16px; display: grid; gap: 12px; }
+.build .t { font-weight: 600; font-size: var(--fs-md); }
+.skills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.skill { font-size: var(--fs-sm); padding: 4px 9px; border-radius: 3px; background: var(--surface); border: 1px solid var(--rule); }
+.skills .to { color: var(--muted); font-size: var(--fs-sm); }
+.who { font-size: var(--fs-sm); color: var(--muted); }
+.who b { color: var(--ink); font-weight: 600; }
+.ext { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 24px; display: grid; gap: 14px; min-width: 0; }
+.ext p { color: var(--muted); font-size: var(--fs-md); }
+.ext dl { margin: 0; display: grid; gap: 12px; }
+.ext dt { font-size: var(--fs-sm); font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.ext dd { margin: 0; }
+.ext ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: var(--fs-sm); }
+.ext .time { display: flex; align-items: baseline; gap: 10px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: var(--fs-sm); color: var(--muted); }
+.ext .time b { font-family: var(--font-display); font-size: var(--fs-stat); font-weight: 700; letter-spacing: -.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* construction replay */
+.rp-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rp-ctrl { display: flex; gap: 6px; }
+.rp-ctrl button { font: 500 var(--fs-xs) var(--font-body); padding: 5px 10px; border-radius: 3px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); cursor: pointer; }
+.rp-ctrl button:focus-visible { outline: 2px solid var(--sve); outline-offset: 2px; }
+.rp-meta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: var(--fs-sm); color: var(--muted); }
+.rp-meta .clock { margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--ink); font-variant-numeric: tabular-nums; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+.dot.a { background: var(--sve); }
+.dot.h { background: var(--sme2); }
+.rp-log { position: relative; list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 330px; overflow-y: auto; scroll-behavior: smooth; }
+.rp-log li { display: grid; grid-template-columns: 34px 10px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 6px 8px; border-radius: 4px; font-size: var(--fs-sm); line-height: 1.4; }
+.rp-log li .tm { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--muted); font-variant-numeric: tabular-nums; }
+.rp-log li .dot { margin: 0; }
+.rp-log li.future { opacity: .4; }
+.rp-log li.now { background: var(--soft); }
+.rp-log li .ok { color: var(--sve2); font-weight: 600; }
+.rp-log li.gap { display: block; text-align: center; font-size: var(--fs-xs); color: var(--muted); padding: 4px; }
+.rp-foot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding-top: 12px; border-top: 1px solid var(--rule); }
+.rp-foot div { display: grid; gap: 2px; font-size: var(--fs-sm); color: var(--muted); }
+.rp-foot b { font-family: var(--font-display); font-size: var(--fs-stat); font-weight: 700; letter-spacing: -.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: no-preference) { .rp-log li { transition: opacity .3s, background-color .3s; } }
+
+/* findings */
+.findings { display: grid; gap: 28px; }
+.fcard { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 0 36px; padding: 28px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+.fcard .txt { display: grid; gap: 12px; align-content: start; }
+.fcard .txt p { color: var(--muted); font-size: var(--fs-md); }
+.more-btn { justify-self: start; margin-top: 4px; display: inline-flex; align-items: center; gap: 6px; font: 500 var(--fs-sm) var(--font-body); padding: 7px 14px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); cursor: pointer; }
+.more-btn:hover { border-color: var(--ink); }
+.more-btn:focus-visible { outline: 2px solid var(--sve); outline-offset: 2px; }
+.more-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+/* closed, the panel takes no space at all; open, it sits 36px below the chart */
+.full { grid-column: 1 / -1; display: grid; grid-template-rows: 0fr; margin-top: 0; }
+.full.open { grid-template-rows: 1fr; margin-top: 36px; }
+.full-in { min-height: 0; overflow: hidden; display: grid; gap: 14px; align-content: start; }
+.full:not(.open) .full-in { visibility: hidden; }
+.full-head { display: grid; gap: 6px; padding-top: 24px; border-top: 1px solid var(--rule); }
+.full-t { font-weight: 600; font-size: var(--fs-base); }
+.full-sub { color: var(--muted); font-size: var(--fs-md); max-width: 90ch; }
+.full .note { margin-top: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .full { transition: grid-template-rows .35s ease, margin-top .35s ease; }
+  .full:not(.open) .full-in { transition: visibility 0s .35s; }
+  .more-btn .chev { transition: transform .2s; }
+}
+.chart { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 54px; gap: 12px; align-items: center; font-size: var(--fs-sm); }
+.row .name { font-size: var(--fs-md); color: var(--muted); line-height: 1.25; }
+.row .name small { display: block; font-size: var(--fs-sm); margin-top: 2px; color: var(--ink); opacity: .75; }
+.track { position: relative; height: 26px; }
+.track .ref { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 1.5px dashed var(--ink); opacity: .55; }
+.bar-a, .bar-b { position: absolute; left: 0; border-radius: 2px; }
+.bar-a { top: 0; height: 15px; background: var(--ink); }
+.bar-b { top: 18px; height: 8px; background: var(--neon); opacity: .65; }
+.val { font-family: var(--font-mono); font-size: var(--fs-md); font-variant-numeric: tabular-nums; text-align: right; }
+.val small { display: block; color: var(--muted); font-size: var(--fs-sm); }
+.axis { display: grid; grid-template-columns: 150px minmax(0, 1fr) 54px; gap: 12px; }
+.axis .ticks { position: relative; height: 18px; font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--muted); }
+.axis .ticks span { position: absolute; transform: translateX(-50%); }
+.axis .ticks span:first-child { transform: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: var(--fs-sm); color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.pair .track { height: 36px; }
+.pair .bar-a { background: var(--sve); height: 15px; top: 0; }
+.pair .val { color: var(--sve); }
+.pair .bar-b { background: var(--sme2); opacity: 1; height: 15px; top: 19px; }
+.pair .val small { color: var(--sme2); font-size: var(--fs-md); }
+.pair.lm .bar-a { background: var(--ink); }
+.pair.lm .bar-b { background: var(--neon); }
+.pair.lm .val { color: var(--ink); }
+.pair.lm .val b { font-weight: inherit; }
+.pair.lm .val small { color: var(--muted); }
+.seg-row { display: flex; }
+.seg { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-sm); color: var(--muted); }
+.seg button:first-of-type { margin-left: 4px; }
+.seg button { font: 500 var(--fs-sm) var(--font-mono); padding: 3px 9px; border-radius: 3px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.seg button:focus-visible { outline: 2px solid var(--sve); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { .pair.lm .bar-a, .pair.lm .bar-b { transition: width .3s ease-out; } }
+.tbl-scroll { overflow-x: auto; min-width: 0; }
+
+/* leaderboard */
+.lb { width: 100%; border-collapse: collapse; font-size: var(--fs-md); background: var(--surface); border: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+.lb th, .lb td { padding: 11px 14px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
+.lb th:nth-child(-n+3), .lb td:nth-child(-n+3) { text-align: left; }
+.lb thead th { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); background: var(--soft); }
+.lb thead th button { all: unset; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.lb thead th button:focus-visible { outline: 2px solid var(--sve); outline-offset: 2px; }
+.lb thead th[aria-sort] button::after { content: "▼"; font-size: 9px; }
+.lb thead th[aria-sort="ascending"] button::after { content: "▲"; }
+.lb td.rank { font-family: var(--font-mono); color: var(--muted); width: 3ch; }
+.lb td .v { font-family: var(--font-mono); }
+.lb td .pct { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); margin-left: 6px; }
+.lb td.best { font-weight: 600; }
+.lb td.best .v { box-shadow: inset 0 -2px 0 var(--sme2); }
+.lb td.below .v { color: var(--muted); }
+.lb tr.tier td { color: var(--muted); background: var(--soft); }
+.lb tr.tier-first td { border-top: 2px solid var(--rule); }
+.lb .h { font-weight: 400; }
+
+/* how it works: the evaluation setup (paper Figure 2), then three measurement rules */
+.arch { margin: 0 0 22px; display: grid; grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr) 72px minmax(0, 1fr); grid-template-rows: auto auto; row-gap: 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 28px 22px; }
+.arch-box { border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.arch-body { flex: 1; display: grid; gap: 8px; align-content: center; }
+.arch-t { display: grid; gap: 2px; text-align: center; }
+.arch-t b { font-size: var(--fs-base); letter-spacing: -.01em; }
+.arch-t span { font-size: var(--fs-sm); color: var(--muted); }
+.arch-h { grid-column: 1; grid-row: 1; }
+.harn { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.harn span { padding: 9px 6px; text-align: center; font-size: var(--fs-md); font-weight: 600; border: 1px solid var(--sve); background: var(--sve-soft); border-radius: 5px; }
+.arch .more { justify-self: center; color: var(--muted); line-height: .5; letter-spacing: .1em; }
+.arch-c1 { grid-column: 1; grid-row: 2; display: flex; min-width: 0; }
+.arch-skill { align-self: center; flex: 0 1 auto; gap: 2px; padding: 12px 16px; }
+.arch-up { position: relative; flex: 1 1 auto; min-width: 40px; }
+.arch-up::before { content: ""; position: absolute; left: 50%; top: -14px; height: calc(50% + 15px); width: 2px; margin-left: -1px; background: var(--muted); }
+.arch-up::after { content: ""; position: absolute; left: 50%; right: 0; top: calc(50% - 1px); height: 2px; background: var(--muted); }
+.arch-up i { position: absolute; left: 50%; top: -15px; margin-left: -5px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 7px solid var(--muted); }
+.arch-skill b { font-size: var(--fs-md); }
+.arch-skill span { font-size: var(--fs-sm); color: var(--muted); }
+.arch-s { grid-column: 3; grid-row: 1; }
+.tools3 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.tools3 span { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 8px; padding: 8px 12px; border: 1px solid var(--rule); background: var(--soft); border-radius: 5px; min-width: 0; }
+.tools3 b { font-size: var(--fs-md); }
+.tools3 small { font-size: var(--fs-sm); color: var(--muted); }
+.arch-hw { grid-column: 5; grid-row: 1; }
+.hw { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid var(--rule); border-radius: 5px; background: var(--surface); padding: 7px 10px; }
+.hw b { font-size: var(--fs-md); }
+.hw .x { font: 500 var(--fs-sm) var(--font-body); padding: 2px 8px; border-radius: 3px; border: 1px solid; }
+.x.sve { background: var(--sve-soft); border-color: var(--sve); }
+.x.sve2 { background: var(--sve2-soft); border-color: var(--sve2); }
+.x.sme2 { background: var(--sme2-soft); border-color: var(--sme2); }
+.arch-arrow { position: relative; align-self: center; height: 2px; margin: 0 8px; background: var(--muted); }
+.arch-arrow::after { content: ""; position: absolute; right: -1px; top: -4px; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid var(--muted); }
+.arch-arrow span, .arch-back span { position: absolute; left: 50%; transform: translateX(-50%); font-size: var(--fs-sm); font-weight: 600; color: var(--muted); white-space: nowrap; }
+.arch-arrow span { bottom: 7px; }
+.a1 { grid-column: 2; grid-row: 1; }
+.a2 { grid-column: 4; grid-row: 1; }
+.arch-back { grid-column: 2 / span 3; grid-row: 2; position: relative; align-self: center; height: 2px; background: var(--muted); }
+.arch-dn { grid-column: 5; grid-row: 2; position: relative; }
+.arch-dn::before { content: ""; position: absolute; left: 50%; top: -14px; height: calc(50% + 15px); width: 2px; margin-left: -1px; background: var(--muted); }
+.arch-dn::after { content: ""; position: absolute; left: 0; right: 50%; top: calc(50% - 1px); height: 2px; background: var(--muted); }
+.arch-back span { top: 8px; }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+.step { padding: 26px; display: grid; gap: 12px; align-content: start; }
+.step + .step { border-left: 1px solid var(--rule); }
+.step .no { font-family: var(--font-body); font-size: var(--fs-md); font-weight: 600; color: var(--sve); }
+.step p { color: var(--muted); font-size: var(--fs-md); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: var(--fs-sm); padding: 4px 10px; border-radius: 3px; background: var(--soft); border: 1px solid var(--rule); }
+
+/* get started + cite */
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+.block { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+.block .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--rule); font-size: var(--fs-sm); }
+.block pre { margin: 0; padding: 18px; font: var(--fs-sm)/1.65 var(--font-mono); overflow-x: auto; }
+.block pre .c { color: var(--muted); }
+.copy { font: 500 var(--fs-xs) var(--font-body); padding: 5px 10px; border-radius: 3px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); cursor: pointer; }
+.copy:focus-visible { outline: 2px solid var(--sve); outline-offset: 2px; }
+#code-bib:empty, .block:has(#code-bib:empty) .copy { display: none; }
+.block:has(#code-bib:empty) .top { border-bottom: 0; }
+.docs-link { margin-top: 20px; font-size: var(--fs-base); }
+footer { border-top: 1px solid var(--rule); padding-block: 28px 40px; font-size: var(--fs-sm); color: var(--muted); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+
+@media (max-width: 1040px) {
+  .two { grid-template-columns: minmax(0, 1fr); }
+  .arch { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 0; padding: 16px; }
+  .arch > * { grid-column: 1; grid-row: auto; }
+  .arch-c1 { display: block; margin-top: 8px; }
+  .arch-up, .arch-dn { display: none; }
+  .arch-arrow { justify-self: center; width: 2px; height: 34px; margin: 6px 0; }
+  .arch-arrow::after { right: auto; top: auto; left: -4px; bottom: -1px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--muted); border-bottom: 0; }
+  .arch-arrow span { bottom: auto; top: 50%; left: 14px; transform: translateY(-50%); }
+  .arch-back { height: auto; margin: 12px 0 0; background: none; text-align: center; }
+  .arch-back::before { content: "↑ "; color: var(--muted); font-weight: 600; font-size: var(--fs-sm); }
+  .arch-back span { position: static; transform: none; }
+}
+@media (max-width: 960px) {
+  .pipe, .gen-wrap, .task-row { grid-template-columns: minmax(0, 1fr); }
+  .ts + .ts { border-left: 0; border-top: 1px solid var(--rule); }
+  .ts + .ts::before { content: "↓"; left: 50%; top: -13px; transform: translateX(-50%); }
+}
+@media (max-width: 860px) {
+  .fcard { grid-template-columns: minmax(0, 1fr); }
+  .fcard > .chart { margin-top: 28px; }
+  .steps { grid-template-columns: minmax(0, 1fr); }
+  .step + .step { border-left: 0; border-top: 1px solid var(--rule); }
+  .bar nav .opt { display: none; }
+}
+@media (max-width: 520px) {
+  .bar nav a { padding: 5px 10px; font-size: var(--fs-sm); }
+  .lanes { --u: 12px; --g: 3px; padding: 18px; }
+  .xchg { width: 44px; margin: 0 6px; }
+  .code { font-size: var(--fs-xs); }
+  .agent { padding-inline: 10px; }
+  .tools { padding: 6px; }
+  .tools span { padding-inline: 8px; }
+  .flow { padding: 16px; }
+  .flow .src { grid-template-columns: minmax(0, 1fr); }
+  .flow .outs, .skillrow, .arrows4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .arrows4 .down:nth-child(n+3) { display: none; }
+  .gens { grid-template-columns: minmax(0, 1fr); }
+  .gen:nth-child(even) { border-left: 0; }
+  .gen + .gen { border-top: 1px solid var(--rule); }
+  /* phones: the label goes on its own line so the bars get the full width */
+  .row, .axis { grid-template-columns: minmax(0, 1fr) 48px; row-gap: 4px; }
+  .row .name { grid-column: 1 / -1; }
+  .row .name small { display: inline-block; margin: 0 0 0 8px; white-space: nowrap; }
+  .axis > span:first-child { display: none; }
+  #chart-sve, #chart-lm, #chart-gen { display: grid; gap: 12px; }
+  .lane { grid-template-columns: 88px minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pill { transition: border-color .15s; }
+}
+</style>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="wordmark" href="#top">Kernel<span>Shift</span></a>
+    <nav aria-label="Project links">
+      <span class="off opt" aria-disabled="true">Paper</span>
+      <a class="primary" href="docs/">Docs</a>
+      <a href="https://github.com/ArtificialRay/KernelShift">Code</a>
+      <a href="https://huggingface.co/datasets/arm-bench/arm-bench-trace">Dataset</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap">
+      <div class="hero-text">
+        <h1>Kernel<span class="shift">Shift</span></h1>
+        <p class="sub">Benchmarking Kernel Optimization Across Evolving Hardware</p>
+        <p class="authors"><span class="names">Shuaiwei Huang<sup>1*</sup>, Weihua Du<sup>1*</sup>, Allen Wu<sup>1*</sup>, Ivan Fox<sup>2</sup>, Manupa Karunaratne<sup>2</sup>, Yiming Yang<sup>1</sup>, Sean Welleck<sup>1</sup></span><span class="aff"><sup>1</sup>Carnegie Mellon University · <sup>2</sup>Arm Ltd. · <sup>*</sup>Equal contribution</span></p>
+        <p class="lede">Each new generation of Arm processors adds instruction-set extensions, shifting over time, and the fastest code has to be rewritten to use them. <span class="sc">KernelShift</span> gives agents 103 real optimization tasks from four open-source libraries and runs their code on the real processors. We provide a <b>task collection pipeline</b> and an <b>evaluation framework</b> for kernel optimization on evolving hardware, and show that agents beat library code on established extensions but still struggle with newer ones.</p>
+        <nav class="pills" aria-label="Sections">
+          <a class="pill" href="#generations">Motivation</a>
+          <a class="pill" href="#pipeline">Task collection pipeline</a>
+          <a class="pill" href="#how">Evaluation framework</a>
+          <a class="pill" href="#results">Key results</a>
+          <a class="pill" href="#start">Get started</a>
+          <a class="pill" href="#cite">Citation</a>
+        </nav>
+      </div>
+      <figure class="task" id="task" aria-label="How a task works: the task, the agent, the score">
+        <div class="task-row">
+          <div class="ts">
+            <p class="ts-no">1 · Task</p>
+            <h3>Start from portable C++</h3>
+<pre class="code" aria-label="The starting code: a plain matrix multiply with bias">for (int m = 0; m &lt; M; ++m)
+  for (int n = 0; n &lt; N; ++n) {
+    float sum = bias[n];
+    for (int k = 0; k &lt; K; ++k)
+      sum += A[m*K+k] * B[k*N+n];
+    C[m*N+n] = sum;
+  }</pre>
+            <p class="ts-foot">A matrix multiply from KleidiAI, one of 103 tasks</p>
+          </div>
+          <div class="ts">
+            <p class="ts-no">2 · Agent</p>
+            <h3>Rewrite it for one hardware extension</h3>
+            <div class="isa" aria-label="Target: SME2"><span>Neon</span><span>SVE</span><span>SVE2</span><span class="on">SME2</span></div>
+            <div class="loop" role="img" aria-label="Iterative turns: each turn the agent calls any tool from its toolkit (compile, evaluate, disassemble) and reads the result">
+              <div class="loop-row"><span class="agent">Agent</span><span class="xchg"><i class="fw"></i><i class="bk"></i><small>Iterative</small></span><div class="kit"><div class="tools" id="task-tools"><span>compile</span><span>evaluate</span><span>disassemble</span></div><small>Toolkit</small></div></div>
+            </div>
+            <p class="ts-foot">Evaluated on various hardware/intrinsics</p>
+          </div>
+          <div class="ts">
+            <p class="ts-no">3 · Score</p>
+            <h3>Correct first, then fast</h3>
+            <!-- labels are HTML on top of the SVG so they stay 13px however wide the chart is drawn -->
+            <div class="tchart-wrap" role="img" aria-label="The agent's best speed so far rises over time toward the speed of the expert code (1.0×)">
+              <svg class="tchart" viewBox="0 0 300 150" aria-hidden="true">
+                <line class="t-axis" x1="8" x2="292" y1="128" y2="128"/>
+                <line class="t-ref" x1="8" x2="292" y1="28" y2="28"/>
+                <polyline class="t-line" id="task-line" points="8,127.6 79,127.6 79,91 94.8,91 94.8,48.1 181.6,48.1 181.6,44.2 205.2,44.2 205.2,44.1 221,44.1 221,40.6 236.8,40.6 236.8,34.5 268.3,34.5 268.3,34.5 284.1,34.5 284.1,34.5 292,34.5"/>
+                <circle class="t-head" id="task-head" r="3.5" cx="292" cy="34.5"/>
+              </svg>
+              <span class="tl" style="left:2.67%; top:13.33%">speed</span>
+              <span class="tl" style="right:2.67%; top:13.33%">expert code = 1.0×</span>
+              <span class="tl" style="left:33.33%; top:47.5%">agent, best so far</span>
+              <span class="tl" style="right:2.67%; top:97.33%">time →</span>
+            </div>
+            <p class="ts-foot">Opus 4.8 on this task, Apple M4</p>
+          </div>
+        </div>
+      </figure>
+    </div>
+  </div>
+
+  <section id="generations">
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Motivation</p>
+        <h2>New hardware changes how fast code has to be written</h2>
+        <p class="lede">Arm keeps adding instruction-set extensions. Some add new instructions; others, like SME2, bring a new programming model, so fast code has to be reorganized, not just recompiled. Expert libraries take time to catch up with each one, and existing kernel benchmarks test a fixed target rather than a sequence of hardware changes. KernelShift asks whether coding agents can make this shift.</p>
+      </div>
+      <div class="gen-wrap">
+      <div class="gens">
+        <div class="gen" style="--c:var(--neon)">
+          <div class="name">Neon</div>
+          <div class="chip-hw">Every 64-bit Arm processor</div>
+          <p>The base instruction set. Each instruction handles a few numbers at once.</p>
+          <div class="out">Intrinsics work on <b>fixed 128-bit registers</b> (4 floats).</div>
+        </div>
+        <div class="gen" style="--c:var(--sve)">
+          <div class="name">SVE</div>
+          <div class="chip-hw">AWS Graviton3 (2022)</div>
+          <p>New instructions: longer rows, and one piece of code works for any row length.</p>
+          <div class="out">Intrinsics work on <b>vectors of any length</b>, from 128 to 2048 bits.</div>
+        </div>
+        <div class="gen" style="--c:var(--sve2)">
+          <div class="name">SVE2</div>
+          <div class="chip-hw">AWS Graviton4 (2024)</div>
+          <p>More instructions, same programming model: more kinds of operations on the same rows.</p>
+          <div class="out">Same intrinsics style as SVE, with <b>more operations</b>.</div>
+        </div>
+        <div class="gen hard" style="--c:var(--sme2)">
+          <div class="name">SME2</div>
+          <div class="chip-hw">Apple M4 (2024)</div>
+          <p>A new programming model: compute on a grid of numbers in a special mode, so code has to be organized differently.</p>
+          <div class="out">Intrinsics work on <b>2D tiles</b>.</div>
+        </div>
+      </div>
+      <figure class="lanes" aria-labelledby="fig-title">
+        <p class="fig-title" id="fig-title">The shape of data a processor handles at once</p>
+        <div class="lane neon">
+          <div class="tag"><b>Neon</b><span>a short row</span></div>
+          <div class="cells n4"><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i></div>
+        </div>
+        <div class="lane sve">
+          <div class="tag"><b>SVE / SVE2</b><span>a longer row / more operators</span></div>
+          <div class="cells n8"><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i><i class="cell"></i></div>
+        </div>
+        <div class="lane sme2">
+          <div class="tag"><b>SME / SME2</b><span>a whole grid</span></div>
+          <div class="tile" id="tile" aria-hidden="true"></div>
+        </div>
+        <figcaption>Neon, SVE and SVE2 work on a row of numbers. SME and SME2 work on a whole grid, so code has to be written in a different way, with a different grammar.</figcaption>
+      </figure>
+      </div>
+      <p class="takeaway">Agents pick up new instructions well. When the programming model changes, they fall behind.</p>
+    </div>
+  </section>
+
+  <section id="pipeline">
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Task collection pipeline</p>
+        <h2><span class="tool">kgen</span>: an agent builds the tasks, people check them</h2>
+        <p class="lede"><span class="tool">kgen</span> is our command-line toolkit for turning code from open-source libraries into benchmark tasks, with skills for agents to follow step by step. A coding agent runs it; people make the few decisions and verify the result.</p>
+      </div>
+      <div class="pipe">
+        <div class="flow" role="img" aria-label="Task collection pipeline: open-source libraries and real model runs go through agent-assisted, human-verified task construction; four skills produce the task spec, real workloads, starting code and expert code of each task">
+          <div class="src">
+            <div class="box" data-stage="src"><b>Open-source libraries</b><span>ncnn · llama.cpp · SIMD Loops · KleidiAI</span></div>
+            <div class="box" data-stage="runs"><b>Real model runs</b><span>vision · LLM</span></div>
+          </div>
+          <div class="down" aria-hidden="true"></div>
+          <div class="build">
+            <span class="t">Agent-assisted · human-verified task construction</span>
+            <span class="st">Skills the agent follows, one per part of a task</span>
+            <div class="skillrow">
+              <span class="skill" data-stage="spec">gen-definition</span>
+              <span class="skill" data-stage="wl">gen-workload</span>
+              <span class="skill" data-stage="start">gen-candidate-solution</span>
+              <span class="skill" data-stage="expert">gen-baseline-solution</span>
+            </div>
+          </div>
+          <div class="arrows4" aria-hidden="true"><i class="down"></i><i class="down"></i><i class="down"></i><i class="down"></i></div>
+          <div class="outs">
+            <div class="box" data-stage="spec"><b>Task spec</b><span>shapes, data types, Python reference</span></div>
+            <div class="box" data-stage="wl"><b>Real workloads</b><span>input sizes, hidden from the agent</span></div>
+            <div class="box" data-stage="start"><b>Starting code</b><span>portable C++</span></div>
+            <div class="box" data-stage="expert"><b>Expert code</b><span>the library's own kernel</span></div>
+          </div>
+          <div class="down" aria-hidden="true"></div>
+          <div class="box final" data-stage="final"><b>KernelShift</b><span>103 kernels · ~1.6K workloads · extensible</span></div>
+        </div>
+        <aside class="ext replay" aria-label="Replay of a real task-construction session">
+          <div class="rp-top">
+            <p class="label">Replay of a real session</p>
+            <div class="rp-ctrl"><button id="rp-play" type="button">Pause</button><button id="rp-restart" type="button">Restart</button></div>
+          </div>
+          <h3>Adding 18 tasks from the KleidiAI repo</h3>
+          <div class="rp-meta"><span><i class="dot a"></i>agent</span><span><i class="dot h"></i>people</span><span class="clock" id="rp-clock">0:00</span></div>
+          <ol class="rp-log" id="rp-log"></ol>
+          <div class="rp-foot">
+            <div><b>97</b>kgen commands run by the agent (Claude Code with Claude Sonnet 5.5)</div>
+            <div><b>24</b>decisions from people</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Evaluation framework</p>
+        <h2>Any agent, measured on the real processor</h2>
+        <p class="lede">Agents connect to the KernelShift server. Every agent gets the same toolkit, and each call runs on a machine with the target processor.</p>
+      </div>
+      <figure class="arch" aria-label="Evaluation setup: agent harnesses call the KernelShift server, which runs on the target instance, compiles, checks and times the code on that processor, and sends correctness and performance results back to the agent">
+        <div class="arch-box arch-h">
+          <p class="arch-t"><b>Agent harness</b><span>one interface for all</span></p>
+          <div class="arch-body"><div class="harn"><span>Claude Code</span><span>Codex</span><span>nanobot</span><span>tool-call loop</span></div><span class="more" aria-hidden="true">…</span></div>
+        </div>
+        <div class="arch-c1"><div class="arch-box arch-skill"><b>Agent skills</b><span>documentation · memory</span></div><span class="arch-up" aria-hidden="true"><i></i></span></div>
+        <div class="arch-arrow a1"><span>call</span></div>
+        <div class="arch-box arch-s">
+          <p class="arch-t"><b>KernelShift server</b><span>one on each target instance</span></p>
+          <div class="arch-body"><div class="tools3"><span><b>Compile</b></span><span><b>Evaluate</b><small>test &amp; time</small></span><span><b>Disassemble</b><small>read assembly</small></span></div></div>
+        </div>
+        <div class="arch-arrow a2"><span>runs on</span></div>
+        <div class="arch-box arch-hw">
+          <p class="arch-t"><b>Target processors</b><span>where the code is run and timed</span></p>
+          <div class="arch-body"><div class="hw"><b>AWS Graviton3</b><span class="x sve">SVE</span></div><div class="hw"><b>AWS Graviton4</b><span class="x sve2">SVE2</span></div><div class="hw"><b>Apple M4</b><span class="x sme2">SME2</span></div><span class="more" aria-hidden="true">…</span></div>
+        </div>
+        <div class="arch-back"><span>results: correctness + performance</span></div>
+        <span class="arch-dn" aria-hidden="true"></span>
+      </figure>
+      <div class="steps">
+        <div class="step">
+          <span class="no">Correctness</span>
+          <h3>Every test input must pass</h3>
+          <p>Code is timed only after it gives the right answer on every test input of the task.</p>
+        </div>
+        <div class="step">
+          <span class="no">Timing</span>
+          <h3>Same machine, same clock</h3>
+          <p>The agent's code and the expert code are timed on the same machine, the same way.</p>
+        </div>
+        <div class="step">
+          <span class="no">Integrity</span>
+          <h3>One core, no shortcuts</h3>
+          <p>Each run gets one core and its own process.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Key results</p>
+        <h2>Strong on familiar extensions, weak on a new programming model</h2>
+        <p class="lede">Scores below compare the agent's code with the code the library ships for that processor.</p>
+      </div>
+      <div class="findings">
+        <article class="fcard">
+          <div class="txt">
+            <p class="label">Established extension (SVE)</p>
+            <h3>Agents beat the code popular libraries ship</h3>
+            <p>The best tested agent (GLM-5.3 with nanobot) is 2.7× faster than ncnn's own code, and the best tested agents are about 1.9× faster on llama.cpp and Arm SIMD Loops. Arm's hand-tuned KleidiAI code is still ahead. A compiler on its own reaches at most half the library's speed.</p>
+            <button class="more-btn" id="full-btn" type="button" aria-expanded="false" aria-controls="full-results">Full results <span class="chev" aria-hidden="true">▾</span></button>
+          </div>
+          <div class="chart" role="img" aria-label="Best tested agent score and compiler-only score per library; 1.0 is the library's own code">
+            <div class="legend"><span><i style="background:var(--ink)"></i>best tested agent (named under each library)</span><span><i style="background:var(--neon)"></i>compiler only</span><span><i style="border-left:1.5px dashed var(--ink);width:0;height:10px;border-radius:0"></i>library's code = 1.0</span></div>
+            <div id="chart-sve"></div>
+            <div class="axis"><span></span><div class="ticks" id="ticks-sve"></div><span></span></div>
+          </div>
+          <div class="full" id="full-results">
+            <div class="full-in">
+              <div class="full-head">
+                <p class="full-t">Full results · AWS Graviton3 (SVE)</p>
+                <p class="full-sub">Each agent gets 40 tool calls per task. Score: speed of its best correct code relative to the library's code, averaged over tasks (1.0 = same speed, higher is better). The small number is the share of tasks where the agent wins. Select a library to sort.</p>
+              </div>
+              <div class="tbl-scroll">
+                <table class="lb" id="lb">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col">Agent</th>
+                      <th scope="col">Model</th>
+                      <th scope="col" data-k="0" aria-sort="descending"><button type="button">ncnn <span class="h">23 tasks</span></button></th>
+                      <th scope="col" data-k="1"><button type="button">llama.cpp <span class="h">26</span></button></th>
+                      <th scope="col" data-k="2"><button type="button">SIMD Loops <span class="h">26</span></button></th>
+                      <th scope="col" data-k="3"><button type="button">KleidiAI <span class="h">3</span></button></th>
+                    </tr>
+                  </thead>
+                  <tbody id="lb-body"></tbody>
+                </table>
+              </div>
+              <p class="note">From the submitted paper. Underlined: best in column. Grey rows: no agent loop.</p>
+            </div>
+          </div>
+        </article>
+        <article class="fcard">
+          <div class="txt">
+            <p class="label">Real LLM inference</p>
+            <h3>The gains carry over to running an LLM</h3>
+            <p>We put agent-written code for the matrix multiplications of two LLMs into llama.cpp on AWS Graviton4. Compared with the original llama.cpp, prompt processing gets 1.4 to 1.6 times faster and token generation about 1.1 times faster.</p>
+          </div>
+          <div class="chart pair lm" aria-label="Speedup over the original llama.cpp for prompt processing and token generation, for two LLMs">
+            <div class="legend"><span><i style="background:var(--ink)"></i>prompt processing</span><span><i style="background:var(--neon)"></i>token generation</span><span><i style="border-left:1.5px dashed var(--ink);width:0;height:10px;border-radius:0"></i>original llama.cpp = 1.0</span></div>
+            <div class="seg-row"><span class="seg" id="lm-threads" role="group" aria-label="CPU threads">CPU threads <button type="button" data-n="1" aria-pressed="false">1</button><button type="button" data-n="4" aria-pressed="false">4</button><button type="button" data-n="16" aria-pressed="true">16</button></span></div>
+            <div id="chart-lm"></div>
+            <div class="axis"><span></span><div class="ticks" id="ticks-lm"></div><span></span></div>
+          </div>
+        </article>
+        <article class="fcard">
+          <div class="txt">
+            <p class="label">Moving to a newer extension (SVE → SME2)</p>
+            <h3>A new programming model costs far more than new instructions</h3>
+            <p>Each model's speed relative to the expert code on KleidiAI's kernels, first on SVE, then on SME2, which brings a new programming model. All four models drop, Claude Opus 4.8 the least (0.85× to 0.68×) and GLM-5.3 the most (0.78× to 0.15×).</p>
+          </div>
+          <div class="chart pair" role="img" aria-label="Speed relative to the expert code on SVE and on SME2, for four models">
+            <div class="legend"><span><i style="background:var(--sve)"></i>SVE</span><span><i style="background:var(--sme2)"></i>SME2</span><span><i style="border-left:1.5px dashed var(--ink);width:0;height:10px;border-radius:0"></i>expert code = 1.0</span></div>
+            <div id="chart-gen"></div>
+            <div class="axis"><span></span><div class="ticks" id="ticks-gen"></div><span></span></div>          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Get started</p>
+        <h2>Try one task locally, or run an agent in one command</h2>
+      </div>
+      <div class="two">
+        <div class="block">
+          <div class="top"><span>Install, then test and time one task</span><button class="copy" data-copy="code-install" type="button">Copy</button></div>
+<pre id="code-install"><span class="c"># Python 3.12+ and clang++</span>
+git clone https://github.com/ArtificialRay/KernelShift
+cd KernelShift
+pip install -r requirements.txt
+hf download arm-bench/arm-bench-trace \
+    --repo-type dataset --local-dir bench-trace
+
+python -m bench.cli bench --dataset simd-loop --isa sve \
+    --definition loop_001 --solution reference_loop_001</pre>
+        </div>
+        <div class="block">
+          <div class="top"><span>Run an agent on a cloud Arm instance</span><button class="copy" data-copy="code-agent" type="button">Copy</button></div>
+<pre id="code-agent"><span class="c"># starts the instance, runs the agent, copies results back</span>
+python3 test_scripts/bench_fleet.py \
+    --harness claude-code --model claude-opus-4-8 \
+    --dataset simd-loop --isa sve \
+    --definitions "loop_001 loop_002"</pre>
+        </div>
+      </div>
+      <p class="docs-link">Setup, the task format and the tool reference are in the <a href="docs/">Docs</a>.</p>
+    </div>
+  </section>
+
+  <section id="cite">
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Citation</p>
+        <h2>BibTeX</h2>
+      </div>
+      <div class="block">
+        <div class="top"><span>Placeholder until the review period ends</span><button class="copy" data-copy="code-bib" type="button">Copy</button></div>
+<pre id="code-bib"></pre>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>KernelShift · 2026</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var tile = document.getElementById('tile');
+  var frag = document.createDocumentFragment();
+  for (var i = 0; i < 64; i++) frag.appendChild(document.createElement('i'));
+  tile.appendChild(frag);
+
+  function ticks(el, max, step, suffix) {
+    for (var v = 0; v <= max + 1e-9; v += step) {
+      var s = document.createElement('span');
+      s.style.left = (v / max * 100) + '%';
+      s.textContent = suffix === '%' ? Math.round(v * 100) + '%' : (Math.round(v * 10) / 10) + '×';
+      el.appendChild(s);
+    }
+  }
+  var lib = [['ncnn', 2.743, 0.229, 'GLM-5.3 · nanobot'], ['llama.cpp', 1.954, 0.126, 'GLM-5.3 · nanobot'],
+             ['SIMD Loops', 1.891, 0.492, 'GPT-5.6-sol · nanobot'], ['KleidiAI', 0.887, 0.098, 'Opus 4.8 · Claude Code']];
+  var MAX1 = 3;
+  document.getElementById('chart-sve').innerHTML = lib.map(function (r) {
+    return '<div class="row"><span class="name">' + r[0] + '<small>' + r[3] + '</small></span><div class="track">' +
+      '<span class="ref" style="left:' + (1 / MAX1 * 100) + '%"></span>' +
+      '<span class="bar-a" style="width:' + (r[1] / MAX1 * 100) + '%"></span>' +
+      '<span class="bar-b" style="width:' + (r[2] / MAX1 * 100) + '%"></span></div>' +
+      '<span class="val">' + r[1].toFixed(2) + '×<small>' + r[2].toFixed(2) + '×</small></span></div>';
+  }).join('');
+  ticks(document.getElementById('ticks-sve'), MAX1, 1, '×');
+
+  // Paper Table 4, KleidiAI rows: Speedup@40 with nanobot against the SVE expert (3 kernels,
+  // Graviton3) and against the SME2 expert (7 kernels, Apple M4).
+  var gen = [['Claude Opus 4.8', 0.851, 0.683], ['Claude Sonnet 4.6', 0.464, 0.226], ['DeepSeek-V4-Pro', 0.710, 0.161], ['GLM-5.3', 0.778, 0.149]];
+  document.getElementById('chart-gen').innerHTML = gen.map(function (r) {
+    return '<div class="row"><span class="name">' + r[0] + '</span><div class="track">' +
+      '<span class="ref" style="left:100%"></span>' +
+      '<span class="bar-a" style="width:' + (r[1] * 100) + '%"></span>' +
+      '<span class="bar-b" style="width:' + (r[2] * 100) + '%"></span></div>' +
+      '<span class="val">' + r[1].toFixed(2) + '×<small>' + r[2].toFixed(2) + '×</small></span></div>';
+  }).join('');
+  ticks(document.getElementById('ticks-gen'), 1, 0.5, '×');
+
+  // Paper table tab:e2e: Qwen3.5-4B and Llama-3.1-8B-Instruct (Q4_K_M) in llama.cpp on Graviton4,
+  // speedup over the original llama.cpp: [model, prompt processing (prefill), token generation (decode)].
+  var LM = {1: [['Qwen3.5-4B', 1.510, 1.100], ['Llama-3.1-8B', 1.568, 1.099]],
+            4: [['Qwen3.5-4B', 1.450, 1.090], ['Llama-3.1-8B', 1.454, 1.069]],
+            16: [['Qwen3.5-4B', 1.373, 1.094], ['Llama-3.1-8B', 1.391, 1.102]]};
+  var MAX2 = 2, lmEl = document.getElementById('chart-lm');
+  var lmBtns = document.querySelectorAll('#lm-threads button');
+  lmEl.innerHTML = LM[1].map(function (r) {
+    return '<div class="row"><span class="name">' + r[0] + '</span><div class="track">' +
+      '<span class="ref" style="left:' + (1 / MAX2 * 100) + '%"></span>' +
+      '<span class="bar-a"></span><span class="bar-b"></span></div>' +
+      '<span class="val"><b></b><small></small></span></div>';
+  }).join('');
+  function setThreads(n) {
+    LM[n].forEach(function (r, i) {
+      var row = lmEl.children[i];
+      row.querySelector('.bar-a').style.width = (r[1] / MAX2 * 100) + '%';
+      row.querySelector('.bar-b').style.width = (r[2] / MAX2 * 100) + '%';
+      row.querySelector('.val b').textContent = r[1].toFixed(2) + '×';
+      row.querySelector('.val small').textContent = r[2].toFixed(2) + '×';
+    });
+    lmBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-n') === String(n))); });
+  }
+  lmBtns.forEach(function (b) { b.addEventListener('click', function () { setThreads(+b.getAttribute('data-n')); }); });
+  setThreads(16);
+  ticks(document.getElementById('ticks-lm'), MAX2, 1, '×');
+
+  var ROWS = [
+    ['Claude Code', 'Claude Opus 4.8', [2.574, 96], [1.779, 73], [1.807, 96], [0.887, 67]],
+    ['Claude Code', 'Claude Sonnet 4.6', [1.934, 83], [1.243, 46], [1.611, 100], [0.750, 67]],
+    ['Codex', 'GPT-5.6-sol', [1.815, 78], [1.297, 62], [1.760, 96], [0.646, 33]],
+    ['Codex', 'GPT-5.6-luna', [0.674, 35], [0.627, 27], [1.255, 77], [0.312, 0]],
+    ['nanobot', 'Claude Opus 4.8', [2.597, 91], [1.708, 73], [1.685, 96], [0.851, 33]],
+    ['nanobot', 'Claude Sonnet 4.6', [2.046, 87], [1.449, 62], [1.612, 92], [0.464, 0]],
+    ['nanobot', 'GPT-5.6-sol', [2.156, 87], [1.334, 58], [1.891, 100], [0.638, 0]],
+    ['nanobot', 'GPT-5.6-luna', [1.110, 57], [0.878, 31], [1.305, 77], [0.372, 0]],
+    ['nanobot', 'DeepSeek-V4-Pro', [1.091, 57], [0.850, 46], [1.405, 85], [0.710, 33]],
+    ['nanobot', 'GLM-5.3', [2.743, 91], [1.954, 85], [1.586, 96], [0.778, 33]],
+    ['Simple tool loop', 'Claude Opus 4.8', [2.308, 83], [1.828, 73], [1.590, 88], [0.797, 67]],
+    ['Simple tool loop', 'Claude Sonnet 4.6', [2.043, 87], [1.915, 81], [1.734, 100], [0.660, 33]],
+    ['Simple tool loop', 'GPT-5.6-sol', [1.999, 91], [1.671, 81], [1.693, 96], [0.678, 67]],
+    ['Simple tool loop', 'GPT-5.6-luna', [0.955, 48], [0.854, 31], [1.407, 77], [0.505, 33]]
+  ];
+  var TIERS = [
+    ['One answer, no tools', 'Claude Opus 4.8', [0.577, 35], [0.324, 8], [0.849, 42], [0.517, 0]],
+    ['Compiler only', 'starting code, basic', [0.190, 0], [0.090, 8], [0.273, 4], [0.054, 0]],
+    ['Compiler only', 'starting code, vectorized', [0.191, 0], [0.117, 12], [0.424, 19], [0.083, 0]],
+    ['Compiler only', 'starting code, best flags', [0.229, 9], [0.126, 15], [0.492, 27], [0.098, 0]]
+  ];
+  var best = [0, 1, 2, 3].map(function (k) { return Math.max.apply(null, ROWS.map(function (r) { return r[2 + k][0]; })); });
+  var sortKey = 0, desc = true;
+  function cell(v, k, isTier) {
+    var cls = !isTier && v[0] === best[k] ? 'best' : (v[0] < 1 ? 'below' : '');
+    return '<td class="' + cls + '"><span class="v">' + v[0].toFixed(2) + '</span><span class="pct">' + v[1] + '%</span></td>';
+  }
+  function render() {
+    var rows = ROWS.slice().sort(function (a, b) { var d = a[2 + sortKey][0] - b[2 + sortKey][0]; return desc ? -d : d; });
+    var html = rows.map(function (r, i) {
+      return '<tr><td class="rank">' + (i + 1) + '</td><td>' + r[0] + '</td><td>' + r[1] + '</td>' + [0, 1, 2, 3].map(function (k) { return cell(r[2 + k], k, false); }).join('') + '</tr>';
+    }).join('');
+    html += TIERS.map(function (r, i) {
+      return '<tr class="tier' + (i === 0 ? ' tier-first' : '') + '"><td class="rank">–</td><td>' + r[0] + '</td><td>' + r[1] + '</td>' + [0, 1, 2, 3].map(function (k) { return cell(r[2 + k], k, true); }).join('') + '</tr>';
+    }).join('');
+    document.getElementById('lb-body').innerHTML = html;
+    document.querySelectorAll('#lb thead th[data-k]').forEach(function (th) {
+      if (+th.dataset.k === sortKey) th.setAttribute('aria-sort', desc ? 'descending' : 'ascending'); else th.removeAttribute('aria-sort');
+    });
+  }
+  document.querySelectorAll('#lb thead th[data-k] button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = +b.parentNode.dataset.k;
+      if (k === sortKey) desc = !desc; else { sortKey = k; desc = true; }
+      render();
+    });
+  });
+  render();
+
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var el = document.getElementById(btn.dataset.copy);
+      function done(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); }
+      function fallback() {
+        var r = document.createRange(); r.selectNodeContents(el);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); done('Selected');
+      }
+      try { navigator.clipboard.writeText(el.innerText).then(function () { done('Copied'); }, fallback); } catch (e) { fallback(); }
+    });
+  });
+})();
+
+// Replay of a real task-construction session (KleidiAI tasks, 28-29 Oct 2026), from its event log.
+// Times are hours:minutes since the session started, with a 5-hour break of the human removed;
+// the replay stops when all 20 Apple M4 tasks pass the full check.
+(function () {
+  var STEPS = [
+    ['0:00', 'a', 'Proposes 10 candidate kernels from KleidiAI'],
+    ['0:04', 'h', 'Picks 5 for Graviton and 5 for Apple M4'],
+    ['0:08', 'a', 'Drafts a task spec for each kernel'],
+    ['0:19', 'h', 'Kernels without dequantization: check them with a tolerance'],
+    ['0:20', 'a', '10 task specs added', 1],
+    ['0:38', 'a', 'Runs the workload skill and records input sizes'],
+    ['0:43', 'h', 'Do the other 9 first, defer one kernel'],
+    ['0:43', 'a', 'Workloads for 9 tasks', 1],
+    ['0:49', 'a', 'Portable C++ starting code for 5 tasks', 1],
+    ['1:02', 'h', 'Approves a new Graviton4 instance'],
+    ['2:01', 'a', 'Instance ready after fixing a stuck setup'],
+    ['2:06', 'a', 'Wraps KleidiAI’s own kernels as the experts; all 5 pass', 1],
+    ['2:23', 'h', 'One rule: set each accuracy bar from the expert’s own accuracy'],
+    ['2:32', 'h', 'Grow the Apple M4 set to 20; show me candidates'],
+    ['3:18', 'h', 'Approves 8 more; keep tolerances as tight as possible'],
+    ['3:30', 'a', '5 more task specs with workloads; static checks pass', 1],
+    ['3:32', 'a', 'Starting code for 9 Apple M4 tasks', 1],
+    ['3:39', 'h', 'Shut down the Graviton instance, open an Apple M4 instance'],
+    ['4:52', 'a', 'Apple M4 instance ready'],
+    ['4:59', 'a', 'Two experts give wrong output'],
+    ['5:00', 'a', 'Fixes how their weights are packed; both pass', 1],
+    ['5:39', 'a', 'Fixes a crash in another; 9 experts pass on Apple M4', 1],
+    ['5:45', 'h', 'Do every kernel Apple M4 can run now'],
+    ['6:04', 'a', 'Adds two more tasks, each with expert and starting code', 1],
+    ['6:49', 'h', 'Use stored input tensors for the requantized kernel'],
+    ['6:55', 'h', 'Approves a replacement for one kernel'],
+    ['7:00', 'a', 'Replacement done: 20 Apple M4 tasks', 1],
+    ['7:09', 'a', 'Full check on Apple M4: every task passes', 1]
+  ];
+  // Which part of the pipeline diagram each step touches (same order as STEPS).
+  var STAGE = ['src', 'src', 'spec', 'spec', 'spec', 'wl', 'wl', 'wl', 'start', 'expert',
+               'expert', 'expert', 'expert', 'src', 'src', 'spec', 'start', 'expert', 'expert', 'expert',
+               'expert', 'expert', 'src', 'final', 'wl', 'src', 'final', 'final'];
+  var parts = document.querySelectorAll('.flow [data-stage]');
+  function light(k) {
+    var stage = STAGE[k], who = STEPS[k] && STEPS[k][1] === 'h' ? 'on-h' : 'on-a';
+    for (var p = 0; p < parts.length; p++) {
+      var hit = parts[p].getAttribute('data-stage') === stage;
+      parts[p].classList.toggle('on-a', hit && who === 'on-a');
+      parts[p].classList.toggle('on-h', hit && who === 'on-h');
+    }
+  }
+  var log = document.getElementById('rp-log');
+  var clock = document.getElementById('rp-clock');
+  var btn = document.getElementById('rp-play');
+  var again = document.getElementById('rp-restart');
+  log.innerHTML = STEPS.map(function (s) {
+    if (s[1] === 'gap') return '<li class="gap">' + s[2] + '</li>';
+    return '<li><span class="tm">' + s[0] + '</span><i class="dot ' + s[1] + '"></i><span>' + s[2] +
+      (s[3] ? ' <span class="ok">✓</span>' : '') + '</span></li>';
+  }).join('');
+  var items = log.children, last = items.length - 1, i = 0, timer = null;
+  function show(k) {
+    for (var j = 0; j < items.length; j++) {
+      items[j].classList.toggle('future', j > k);
+      items[j].classList.toggle('now', j === k);
+    }
+    for (var b = k; b >= 0; b--) { if (STEPS[b][0]) { clock.textContent = STEPS[b][0]; break; } }
+    var el = items[k];
+    log.scrollTop = Math.max(0, el.offsetTop - log.clientHeight / 2 + el.offsetHeight / 2);
+    light(k);
+  }
+  function stop() { clearInterval(timer); timer = null; btn.textContent = i >= last ? 'Replay' : 'Play'; }
+  function play() {
+    if (i >= last) { i = 0; show(0); }
+    clearInterval(timer);
+    timer = setInterval(function () { if (i >= last) { stop(); return; } i++; show(i); }, 850);
+    btn.textContent = 'Pause';
+  }
+  btn.addEventListener('click', function () { if (timer) stop(); else play(); });
+  again.addEventListener('click', function () { i = 0; show(0); play(); });
+  var reduce = false;
+  try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  if (reduce) { i = last; show(last); items[last].classList.remove('now'); stop(); }
+  else { show(0); play(); }
+})();
+
+
+// Full results: the leaderboard table folded into the first results card.
+(function () {
+  var btn = document.getElementById('full-btn'), box = document.getElementById('full-results');
+  function set(open) { box.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open)); }
+  btn.addEventListener('click', function () { set(btn.getAttribute('aria-expanded') !== 'true'); });
+  document.querySelectorAll('a[href="#full-results"]').forEach(function (a) { a.addEventListener('click', function () { set(true); }); });
+  if (location.hash === '#full-results') set(true);
+})();
+</script>
