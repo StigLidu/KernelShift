@@ -831,9 +831,9 @@ python3 test_scripts/bench_fleet.py \
 
   // Paper table tab:e2e: Qwen3.5-4B and Llama-3.1-8B-Instruct (Q4_K_M) in llama.cpp on Graviton4,
   // speedup over the original llama.cpp: [model, prompt processing (prefill), token generation (decode)].
-  var LM = {1: [['Qwen3.5-4B', 1.510, 1.100], ['Llama-3.1-8B', 1.568, 1.099]],
-            4: [['Qwen3.5-4B', 1.450, 1.090], ['Llama-3.1-8B', 1.454, 1.069]],
-            16: [['Qwen3.5-4B', 1.373, 1.094], ['Llama-3.1-8B', 1.391, 1.102]]};
+  var LM = {1: [['Qwen3.5-4B', 1.522, 1.089], ['Llama-3.1-8B', 1.568, 1.099]],
+            4: [['Qwen3.5-4B', 1.442, 1.090], ['Llama-3.1-8B', 1.454, 1.069]],
+            16: [['Qwen3.5-4B', 1.367, 1.085], ['Llama-3.1-8B', 1.391, 1.102]]};
   var MAX2 = 2, lmEl = document.getElementById('chart-lm');
   var lmBtns = document.querySelectorAll('#lm-threads button');
   lmEl.innerHTML = LM[1].map(function (r) {
