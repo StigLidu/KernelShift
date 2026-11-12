@@ -714,7 +714,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
           <div class="txt">
             <p class="label">Real LLM inference</p>
             <h3>The gains carry over to running an LLM</h3>
-            <p>We put agent-written code for the matrix multiplications of two LLMs into llama.cpp on AWS Graviton4. Compared with the original llama.cpp, prompt processing gets 1.4 to 1.6 times faster and token generation about 1.1 times faster.</p>
+            <p>We put agent-written code for the matrix multiplications of two LLMs into llama.cpp on AWS Graviton4. Compared with the original llama.cpp, prompt processing gets 1.3 to 1.6 times faster, while token generation stays about as fast as before (0.94 to 1.06 times).</p>
           </div>
           <div class="chart pair lm" aria-label="Speedup over the original llama.cpp for prompt processing and token generation, for two LLMs">
             <div class="legend"><span><i style="background:var(--ink)"></i>prompt processing</span><span><i style="background:var(--neon)"></i>token generation</span><span><i style="border-left:1.5px dashed var(--ink);width:0;height:10px;border-radius:0"></i>original llama.cpp = 1.0</span></div>
@@ -831,9 +831,9 @@ python3 test_scripts/bench_fleet.py \
 
   // Paper table tab:e2e: Qwen3.5-4B and Llama-3.1-8B-Instruct (Q4_K_M) in llama.cpp on Graviton4,
   // speedup over the original llama.cpp: [model, prompt processing (prefill), token generation (decode)].
-  var LM = {1: [['Qwen3.5-4B', 1.522, 1.089], ['Llama-3.1-8B', 1.568, 1.099]],
-            4: [['Qwen3.5-4B', 1.442, 1.090], ['Llama-3.1-8B', 1.454, 1.069]],
-            16: [['Qwen3.5-4B', 1.367, 1.085], ['Llama-3.1-8B', 1.391, 1.102]]};
+  var LM = {1: [['Qwen3.5-4B', 1.395, 1.045], ['Llama-3.1-8B', 1.634, 0.939]],
+            4: [['Qwen3.5-4B', 1.348, 1.059], ['Llama-3.1-8B', 1.526, 0.975]],
+            16: [['Qwen3.5-4B', 1.298, 1.048], ['Llama-3.1-8B', 1.409, 1.039]]};
   var MAX2 = 2, lmEl = document.getElementById('chart-lm');
   var lmBtns = document.querySelectorAll('#lm-threads button');
   lmEl.innerHTML = LM[1].map(function (r) {
