@@ -456,11 +456,11 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
         <h1>Kernel<span class="shift">Shift</span></h1>
         <p class="sub">Benchmarking Kernel Optimization Across Evolving Hardware</p>
         <p class="authors"><span class="names">Shuaiwei Huang<sup>1*</sup>, Weihua Du<sup>1*</sup>, Allen Wu<sup>1*</sup>, Ivan Fox<sup>2</sup>, Manupa Karunaratne<sup>2</sup>, Yiming Yang<sup>1</sup>, Sean Welleck<sup>1</sup></span><span class="aff"><sup>1</sup>Carnegie Mellon University · <sup>2</sup>Arm Ltd. · <sup>*</sup>Equal contribution</span></p>
-        <p class="lede">Each new generation of Arm processors adds instruction-set extensions, shifting over time, and the fastest code has to be rewritten to use them. <span class="sc">KernelShift</span> gives agents 101 real optimization tasks from four open-source libraries and runs their code on the real processors. We provide a <b>task collection pipeline</b> and an <b>evaluation framework</b> for kernel optimization on evolving hardware, and show that agents beat library code on established extensions but still struggle with newer ones.</p>
+        <p class="lede">Each new generation of Arm processors adds instruction-set extensions, shifting over time, and the fastest code has to be rewritten to use them. <span class="sc">KernelShift</span> gives agents 101 real optimization tasks from four open-source libraries and runs their code on the real processors. We provide a <b>benchmarking pipeline</b> and a set of <b>environments</b> for kernel optimization on evolving hardware, and show that agents beat library code on established extensions but still struggle with newer ones.</p>
         <nav class="pills" aria-label="Sections">
           <a class="pill" href="#generations">Motivation</a>
-          <a class="pill" href="#pipeline">Task collection pipeline</a>
-          <a class="pill" href="#how">Evaluation framework</a>
+          <a class="pill" href="#pipeline">Benchmarking pipeline</a>
+          <a class="pill" href="#how">Environments</a>
           <a class="pill" href="#results">Key results</a>
           <a class="pill" href="#start">Get started</a>
           <a class="pill" href="#cite">Citation</a>
@@ -570,12 +570,12 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   <section id="pipeline">
     <div class="wrap">
       <div class="head">
-        <p class="label">Task collection pipeline</p>
+        <p class="label">Benchmarking pipeline</p>
         <h2><span class="tool">kgen</span>: an agent builds the tasks, people check them</h2>
         <p class="lede"><span class="tool">kgen</span> is our command-line toolkit for turning code from open-source libraries into benchmark tasks, with skills for agents to follow step by step. A coding agent runs it; people make the few decisions and verify the result.</p>
       </div>
       <div class="pipe">
-        <div class="flow" role="img" aria-label="Task collection pipeline: open-source libraries and real model runs go through agent-assisted, human-verified task construction; four skills produce the task spec, real workloads, starting code and expert code of each task">
+        <div class="flow" role="img" aria-label="Benchmarking pipeline: open-source libraries and real model runs go through agent-assisted, human-verified task construction; four skills produce the task spec, real workloads, starting code and expert code of each task">
           <div class="src">
             <div class="box" data-stage="src"><b>Open-source libraries</b><span>ncnn · llama.cpp · SIMD Loops · KleidiAI</span></div>
             <div class="box" data-stage="runs"><b>Real model runs</b><span>vision · LLM</span></div>
@@ -621,7 +621,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
   <section id="how">
     <div class="wrap">
       <div class="head">
-        <p class="label">Evaluation framework</p>
+        <p class="label">Environments</p>
         <h2>Any agent, measured on the real processor</h2>
         <p class="lede">Agents connect to the KernelShift server. Every agent gets the same toolkit, and each call runs on a machine with the target processor.</p>
       </div>
