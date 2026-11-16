@@ -196,11 +196,11 @@ td code { white-space: nowrap; }
     <article data-page="introduction">
       <p class="crumb">Getting started</p>
       <h1>Introduction</h1>
-      <p class="lead">Arm keeps adding instruction-set extensions, and fast kernels have to be rewritten for each one. KernelShift measures whether coding agents can do that rewrite. It has two parts: a <b>benchmarking pipeline</b> (kgen) that collects tasks from open-source libraries, and a set of <b>environments</b> that check and time each kernel on real Neon, SVE, SVE2 and SME2 processors. The current evaluation set has 99 kernels from four libraries.</p>
+      <p class="lead">Arm keeps adding instruction-set extensions, and fast kernels have to be rewritten for each one. KernelShift measures whether coding agents can do that rewrite. It has two parts: a <b>benchmarking pipeline</b> (kgen) that collects tasks from open-source libraries, and a set of <b>environments</b> that check and time each kernel on real Neon, SVE, SVE2 and SME2 processors. The benchmark has 144 kernels from four libraries; the current evaluation set uses 99 of them.</p>
       <p>Each task is a kernel from a production library with a reference implementation, workloads taken from real models, and an expert implementation to beat. Through MCP tools, the agent compiles its kernel, tests and times it, and reads the generated assembly, all on the target processor. A kernel scores only if it is correct on every workload, and its score is the speedup over the expert implementation.</p>
       <div class="cards">
         <a class="card" href="#quickstart"><strong>Quickstart</strong><span>Check and time one kernel on your own computer.</span></a>
-        <a class="card" href="#datasets"><strong>Datasets</strong><span>The 99 kernels of the evaluation set and where they come from.</span></a>
+        <a class="card" href="#datasets"><strong>Datasets</strong><span>The 144 kernels, the 99 in the evaluation set, and where they come from.</span></a>
         <a class="card" href="#kgen"><strong>Add a kernel with kgen</strong><span>Turn a kernel from a library into a new task.</span></a>
         <a class="card" href="#run-an-agent"><strong>Run an agent</strong><span>Claude Code, Codex, nanobot and others on EC2.</span></a>
       </div>
