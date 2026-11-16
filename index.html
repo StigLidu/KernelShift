@@ -456,7 +456,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
         <h1>Kernel<span class="shift">Shift</span></h1>
         <p class="sub">Benchmarking Kernel Optimization Across Evolving Hardware</p>
         <p class="authors"><span class="names">Shuaiwei Huang<sup>1*</sup>, Weihua Du<sup>1*</sup>, Allen Wu<sup>1*</sup>, Ivan Fox<sup>2</sup>, Manupa Karunaratne<sup>2</sup>, Yiming Yang<sup>1</sup>, Sean Welleck<sup>1</sup></span><span class="aff"><sup>1</sup>Carnegie Mellon University · <sup>2</sup>Arm Ltd. · <sup>*</sup>Equal contribution</span></p>
-        <p class="lede">Each new generation of Arm processors adds instruction-set extensions, shifting over time, and the fastest code has to be rewritten to use them. <span class="sc">KernelShift</span> gives agents 101 real optimization tasks from four open-source libraries and runs their code on the real processors. We provide a <b>benchmarking pipeline</b> and a set of <b>environments</b> for kernel optimization on evolving hardware, and show that agents beat library code on established extensions but still struggle with newer ones.</p>
+        <p class="lede">Each new generation of Arm processors adds instruction-set extensions, shifting over time, and the fastest code has to be rewritten to use them. <span class="sc">KernelShift</span> gives agents 99 real optimization tasks from four open-source libraries and runs their code on the real processors. We provide a <b>benchmarking pipeline</b> and a set of <b>environments</b> for kernel optimization on evolving hardware, and show that agents beat library code on established extensions but still struggle with newer ones.</p>
         <nav class="pills" aria-label="Sections">
           <a class="pill" href="#generations">Motivation</a>
           <a class="pill" href="#pipeline">Benchmarking pipeline</a>
@@ -478,7 +478,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
       sum += A[m*K+k] * B[k*N+n];
     C[m*N+n] = sum;
   }</pre>
-            <p class="ts-foot">A matrix multiply from KleidiAI, one of 101 tasks</p>
+            <p class="ts-foot">A matrix multiply from KleidiAI, one of 99 tasks</p>
           </div>
           <div class="ts">
             <p class="ts-no">2 · Agent</p>
@@ -599,7 +599,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
             <div class="box" data-stage="expert"><b>Expert code</b><span>the library's own kernel</span></div>
           </div>
           <div class="down" aria-hidden="true"></div>
-          <div class="box final" data-stage="final"><b>KernelShift</b><span>101 kernels · ~1.6K workloads · extensible</span></div>
+          <div class="box final" data-stage="final"><b>KernelShift</b><span>99 kernels · ~1.6K workloads · extensible</span></div>
         </div>
         <aside class="ext replay" aria-label="Replay of a real task-construction session">
           <div class="rp-top">
