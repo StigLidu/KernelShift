@@ -407,13 +407,13 @@ section .head > .label { justify-self: start; font-size: var(--fs-base); line-he
 .run-plot button.pt:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .run-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .run-steps button { display: inline-flex; align-items: baseline; gap: 6px; font: 500 var(--fs-sm) var(--font-body); padding: 5px 11px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); cursor: pointer; }
-.run-steps button span { font-family: var(--font-mono); color: var(--muted); }
+.run-steps button span { color: var(--muted); font-variant-numeric: tabular-nums; }
 .run-steps button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .run-steps button[aria-pressed="true"] span { color: var(--bg); opacity: .8; }
 .run-steps button:focus-visible { outline: 2px solid var(--sve); outline-offset: 2px; }
 .run-note { display: grid; gap: 4px; padding: 12px 14px; border-left: 3px solid var(--c); background: var(--bg); border-radius: 0 4px 4px 0; }
 .run-note .h { font-size: var(--fs-sm); color: var(--muted); }
-.run-note .h b { font-family: var(--font-mono); font-weight: 500; color: var(--ink); }
+.run-note .h b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 .run-note p { font-size: var(--fs-md); }
 .run-code { position: relative; margin: 0; max-height: 380px; overflow: auto; background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; padding: 10px 0; font: var(--fs-sm)/1.55 var(--font-mono); font-variant-ligatures: none; counter-reset: ln; }
 .run-code span { display: block; padding: 0 14px 0 52px; position: relative; white-space: pre; min-height: 1.55em; }
@@ -844,7 +844,7 @@ python3 test_scripts/bench_fleet.py \
           </div>
           <div class="run-tabs" id="run-tabs" role="tablist" aria-label="Kernel"></div>
         </div>
-        <p class="run-foot">Speed is relative to the library's own code on the same processor (1.0× = as fast), over all of the task's test inputs, as recorded in each run. Notes describe what changed in the code since the previous key step.</p>
+        <p class="run-foot">Speed is relative to the library's own code on the same processor (1.0× = as fast).</p>
       </div>
     </div>
   </section>
