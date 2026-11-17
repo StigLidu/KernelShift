@@ -444,7 +444,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
       <span class="off opt" aria-disabled="true">Paper</span>
       <a class="primary" href="docs/">Docs</a>
       <a href="https://github.com/ArtificialRay/KernelShift">Code</a>
-      <a href="https://huggingface.co/datasets/arm-bench/arm-bench-trace">Dataset</a>
+      <a href="https://huggingface.co/datasets/arm-bench/KernelShift">Dataset</a>
     </nav>
   </div>
 </header>
@@ -751,11 +751,11 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: s
 git clone https://github.com/ArtificialRay/KernelShift
 cd KernelShift
 pip install -r requirements.txt
-hf download arm-bench/arm-bench-trace \
+hf download arm-bench/KernelShift \
     --repo-type dataset --local-dir bench-trace
 
 python -m bench.cli bench --dataset simd-loop --isa sve \
-    --definition loop_001 --solution reference_loop_001</pre>
+    --definition loop_001 --solution reference-scalar_loop_001</pre>
         </div>
         <div class="block">
           <div class="top"><span>Run an agent on a cloud Arm instance</span><button class="copy" data-copy="code-agent" type="button">Copy</button></div>

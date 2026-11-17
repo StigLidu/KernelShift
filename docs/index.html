@@ -159,7 +159,7 @@ td code { white-space: nowrap; }
     <nav aria-label="Site">
       <a href="../">Home</a>
       <a href="https://github.com/ArtificialRay/KernelShift">Code</a>
-      <a href="https://huggingface.co/datasets/arm-bench/arm-bench-trace">Dataset</a>
+      <a href="https://huggingface.co/datasets/arm-bench/KernelShift">Dataset</a>
     </nav>
   </div>
 </header>
@@ -224,7 +224,7 @@ td code { white-space: nowrap; }
           <tr><td><a href="https://gitlab.arm.com/kleidi/kleidiai">KleidiAI</a></td><td>GEMM and convolution micro-kernels</td><td>Arm's vendor micro-kernels</td></tr>
         </tbody>
       </table></div>
-      <p>The tasks live in the Hugging Face dataset <a href="https://huggingface.co/datasets/arm-bench/arm-bench-trace"><code>arm-bench/arm-bench-trace</code></a>. Its <code>TASKS.md</code> lists, for every definition, the expert baseline on each hardware tier and whether it runs there.</p>
+      <p>The tasks live in the Hugging Face dataset <a href="https://huggingface.co/datasets/arm-bench/KernelShift"><code>arm-bench/KernelShift</code></a>. Its <code>TASKS.md</code> lists, for every definition, the expert baseline on each hardware tier and whether it runs there.</p>
     </article>
 
     <article data-page="installation" hidden>
@@ -236,7 +236,7 @@ td code { white-space: nowrap; }
 <pre><code style="background:none;padding:0">git clone https://github.com/ArtificialRay/KernelShift && cd KernelShift
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
-hf download arm-bench/arm-bench-trace --repo-type dataset --local-dir bench-trace</code></pre>
+hf download arm-bench/KernelShift --repo-type dataset --local-dir bench-trace</code></pre>
       <h2 id="install-check">Check that the dataset loaded</h2>
       <p>Every tool reads the dataset from <code>bench-trace/</code>.</p>
 <pre><span class="p">$ </span>python -m bench.cli summary
@@ -254,7 +254,7 @@ hf download arm-bench/arm-bench-trace --repo-type dataset --local-dir bench-trac
       <p class="lead">Compile a solution, check it against the reference on every workload, and time it. No AWS account or agent is involved.</p>
       <h2 id="qs-run">Run one kernel</h2>
       <div class="codehead"><span>shell</span><button class="copy" type="button">Copy</button></div>
-<pre><code style="background:none;padding:0">python -m bench.cli bench --definition loop_001 --solution reference_loop_001 --dataset simd-loop --isa sve</code></pre>
+<pre><code style="background:none;padding:0">python -m bench.cli bench --definition loop_001 --solution reference-scalar_loop_001 --dataset simd-loop --isa sve</code></pre>
       <p>Each line is one workload: its id, the verdict, the minimum and 5th-percentile time, and the largest absolute and relative error against the reference.</p>
 <pre>  6bfe094b  PASSED  min=9.08us  p5=9.15us  max_abs=0.00e+00  max_rel=0.00e+00
   06735e72  PASSED  min=43.30us  p5=43.82us  max_abs=0.00e+00  max_rel=0.00e+00
@@ -292,7 +292,7 @@ python -m bench.cli list-solutions</code></pre>
 <pre>{"axes": {"M": 6}, "inputs": {"x": {"type": "random"}, "weight": {"type": "random"}},
  "uuid": "4afccae94503552f86d5d6afeba0bdc0"}</pre>
       <h2 id="tf-sol">Solution</h2>
-      <p>Source files plus a build spec. Every task ships two: <code>reference-scalar</code> (<code>reference</code> for SIMD Loops), plain C++ that is the agent's starting point, and the library's own kernel (for example <code>baseline-llamacpp-arm</code>), which the agent has to beat. The agent edits only <code>kernel.cpp</code>; the harness adds the binding files.</p>
+      <p>Source files plus a build spec. Every task ships two: <code>reference-scalar</code>, plain C++ that is the agent's starting point, and the library's own kernel (for example <code>baseline-llamacpp</code>), which the agent has to beat. The agent edits only <code>kernel.cpp</code>; the harness adds the binding files.</p>
 <pre>{
   "definition": "rms_norm_fp32_d2048",
   "dataset": "llama.cpp",
@@ -300,7 +300,7 @@ python -m bench.cli list-solutions</code></pre>
   "spec": {
     "language": "cpp",
     "target_hardware": ["graviton3", "aarch64-sve"],
-    "entry_point": "rms_norm.cpp::armbench_entry_rms_norm",
+    "entry_point": "rms_norm.cpp::kernelshift_entry_rms_norm",
     "isa_features": [],
     "compile_flags": ["-O2", "-std=c++14"]
   },
@@ -352,26 +352,26 @@ python -m bench.cli list-solutions</code></pre>
     <article data-page="datasets" hidden>
       <p class="crumb">Concepts</p>
       <h1>Datasets</h1>
-      <p class="lead">The Hugging Face dataset <a href="https://huggingface.co/datasets/arm-bench/arm-bench-trace"><code>arm-bench/arm-bench-trace</code></a> holds 144 definitions. 99 of them are the current evaluation set.</p>
+      <p class="lead">The Hugging Face dataset <a href="https://huggingface.co/datasets/arm-bench/KernelShift"><code>arm-bench/KernelShift</code></a> holds 144 definitions. 99 of them are the current evaluation set.</p>
       <div class="tbl"><table>
         <thead><tr><th>Library</th><th><code style="background:none;padding:0">--dataset</code></th><th>Definitions</th><th>Evaluated</th><th>Expert author</th></tr></thead>
         <tbody>
-          <tr><td>ncnn</td><td><code>ncnn</code></td><td>23</td><td>23</td><td><code>baseline-ncnn-arm</code></td></tr>
-          <tr><td>llama.cpp</td><td><code>llama.cpp</code></td><td>26, plus 18 end-to-end</td><td>26</td><td><code>baseline-llamacpp-arm</code></td></tr>
-          <tr><td>Arm SIMD Loops</td><td><code>simd-loop</code></td><td>47</td><td>24</td><td><code>baseline-sve</code>, <code>baseline-sve2</code>, <code>baseline-sme2</code></td></tr>
-          <tr><td>KleidiAI</td><td><code>kleidiai</code></td><td>30</td><td>26</td><td><code>baseline-kleidiai-arm</code></td></tr>
+          <tr><td>ncnn</td><td><code>ncnn</code></td><td>23</td><td>23</td><td><code>baseline-ncnn</code></td></tr>
+          <tr><td>llama.cpp</td><td><code>llama.cpp</code></td><td>26, plus 18 end-to-end</td><td>26</td><td><code>baseline-llamacpp</code></td></tr>
+          <tr><td>Arm SIMD Loops</td><td><code>simd-loop</code></td><td>47</td><td>24</td><td><code>baseline-simd-loop-sve</code>, <code>baseline-simd-loop-sve2</code>, <code>baseline-simd-loop-sme2</code></td></tr>
+          <tr><td>KleidiAI</td><td><code>kleidiai</code></td><td>30</td><td>26</td><td><code>baseline-kleidiai</code></td></tr>
         </tbody>
       </table></div>
       <p>The 18 end-to-end definitions are the matrix multiplies of two models, tagged <code>e2e:&lt;model&gt;</code>; see <a href="#e2e">End to end in llama.cpp</a>.</p>
       <h2 id="ds-sets">Evaluation sets</h2>
       <ul>
-        <li><code>expected_sets_sve.json</code>: the 99 evaluated definitions.</li>
-        <li><code>subset_sve.json</code> and <code>subset_sme.json</code>: a 32-definition sample for the SVE and SME2 targets. They differ only in the KleidiAI matrix multiply.</li>
+        <li><code>expected_sets.json</code>: the 99 evaluated definitions.</li>
+        <li><code>subset_sve.json</code> and <code>subset_sme2.json</code>: a 32-definition sample for the SVE and SME2 targets. They differ only in the KleidiAI matrix multiply.</li>
         <li><code>TASKS.md</code>: every definition with its expert solution on each target, and whether it runs there.</li>
       </ul>
       <h2 id="ds-authors">Solution authors</h2>
       <ul>
-        <li><code>reference-scalar</code> (<code>reference</code> for SIMD Loops): the plain C++ starting point.</li>
+        <li><code>reference-scalar</code>: the plain C++ starting point.</li>
         <li><code>baseline-*</code>: the library's own kernel, which the agent has to beat. SIMD Loops has one per extension; the others use the same one everywhere.</li>
         <li><code>autovec</code> (SIMD Loops): the loop as the compiler auto-vectorizes it.</li>
         <li>Agent runs save their best kernel as <code>&lt;harness&gt;-&lt;model&gt;-&lt;isa&gt;</code>, for example <code>claude-code-claude-opus-4-8-sve</code>.</li>
